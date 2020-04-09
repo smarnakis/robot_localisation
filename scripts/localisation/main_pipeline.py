@@ -5,6 +5,7 @@ import numpy as np
 
 sys.path.append('..')
 from detection.door_detection import find_test_doors
+from compvis_utils.control_point_extraction import sift
 
 def load_image_into_numpy_array(image):
     (im_width, im_height) = image.size
@@ -36,9 +37,9 @@ def chop_block(or_image,block_bounds):
 	chopped_pil = image_pil.crop((int(left), int(top), int(right), int(bottom)))
 	# chop_im = load_image_into_numpy_array(chopped_pic)
 	chopped_pil.show()
-	# chopped_pil.save('/home/smarn/thesis/images/detected_doors/chopped.jpg')
-	#chopped_pic.show()
-	return chopped_pil
+	chopped_pil.save('/home/smarn/thesis/robot_localisation/images/detected_doors/chopped.jpg')
+	cropped_im = load_image_into_numpy_array(chopped_pil)
+	return cropped_im
 
 def seperate_blocks(or_image,imp_bl):
 	image_blocks = []
@@ -47,6 +48,7 @@ def seperate_blocks(or_image,imp_bl):
 		print(block[0])
 		image_blocks.append((chop_block(or_image,block[0]),block[1],block[2]))
 	return image_blocks
+
 
 def main():
 
@@ -60,6 +62,7 @@ def main():
 
 	print(image_blocks)
 	#plt.imsave('/home/smarn/thesis/images/detected_doors/image.jpg',image)
+	sift(image_blocks[0][1])
 
 
 
