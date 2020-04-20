@@ -1,12 +1,46 @@
+1) Resize pics with mogrify to 1920x1080p:
+	$ mogrify -resize 1920X1080 *
+
+2) Annotate pics with labelImg tool
+3) Use auxiliary scripts to augment the dataset
+4)	$cd tensorflow/models/research/object_detection
+		python3 xml_to_csv.py (in object_detection dir)
+5)	$ cd ../
+		$ export PYTHONPATH=$PYTHONPATH:`pwd`:`pwd`/slim
+		$ cd object_detection
+6)  Generate the tf records:
+	A)Create an object-detection.pbtxt file with a dectionary for each object as follows:
+		item {
+			id: 1
+			name: "object1"
+			display_name: "object1"
+		}
+	B)In the script generate_tfrecord.py change the "class_text_to_int" according to the object-detection.pbtxt
+	C)Run the generate_tfrecord.py script 2 times (one for train and one for test) changing in main() the command:
+	"path = os.path.join(os.getcwd(), 'images/HERE')", HERE:=train or HERE:=test.
+		$ python3 generate_tfrecord.py --csv_input=data/train_labels.csv  --output_path=data/train.record --image_dir=images/train/
+		$ python3 generate_tfrecord.py --csv_input=data/test_labels.csv  --output_path=data/test.record --image_dir=images/test/
+
+7)	Download the model.config you prefer and edit it (In my case
+		I download the faster_rcnn_resnet101_coco.config)
+	A)At the "model" moduel change the "num_classes" param to your number of objects
+	B)At the "train_config" module change the "fine_tune_checkpoint" to the pre-trained model you downloaded (for me "faster_rcnn_resnet101_coco_2018_01_28/model.ckpt")
+	C) Change the train/eval_input_reader directories to the ones where the train/test data and object-detection.pbtxt are located
+
+8)	Train.
+		$cd ..
+		$export TF_XLA_FLAGS=--tf_xla_cpu_global_jit
+		$cd object_detection
+		$python3 legacy/train.py --logtosterr --train_dir=training --pipeline_config_path=training/faster_rcnn_resnet101_coco.config
+
+
+
 python3 export_inference_graph.py \
     --input_type image_tensor \
     --pipeline_config_path training/faster_rcnn_resnet101_coco.config \
-    --trained_checkpoint_prefix training/model.ckpt-1776 \
-    --output_directory MODELS/door_graph_faster_RCNΝ_RESNET_INTER2
+    --trained_checkpoint_prefix training/model.ckpt-3239 \
+    --output_directory MODELS/lab_doors_graph_faster_RCNN_resnet
 
-
-#to generate tfRecord:
-#Change number of classes in generate_tfrecord.py
 
 
 python3 legacy/train.py --logtosterr --train_dir=training --pipeline_config_path=training/faster_rcnn_resnet101_coco.config

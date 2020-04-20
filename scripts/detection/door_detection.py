@@ -37,20 +37,24 @@ def load_image_into_numpy_array(image):
 def find_test_doors(PATH_TO_TEST_IMAGES_DIR):
 
 	# Configuring Model paths
-	TENSORFLOW_FOLDER = sys.path[-1]
+	# TENSORFLOW_FOLDER = sys.path[-1]
+	PROJECT_FOLDER = '../../'
 
-	MODEL_FOLDER = '/MODELS/'
-	MODEL_NAME = 'door_graph_faster_RCNN_RESNET_INTER2'
-	MODEL_PATH = TENSORFLOW_FOLDER + MODEL_FOLDER + MODEL_NAME
+	MODEL_FOLDER = 'tensorflow-object_detection/MODEL/'
+	MODEL_NAME = 'lab_doors_graph_faster_RCNN_resnet'
+	
+	MODEL_PATH = PROJECT_FOLDER + MODEL_FOLDER + MODEL_NAME
 	
 	# Configuring path to NN's inference graph
 	PATH_TO_CKPT = MODEL_PATH + '/frozen_inference_graph.pb'
 	 
 	# Configuring path to data labels
-	PATH_TO_LABELS = os.path.join(TENSORFLOW_FOLDER,'data', 'door-detection.pbtxt')
+
+	PATH_TO_LABELS = PROJECT_FOLDER + 'tensorflow-object_detection/' + 'lab_doors-detection.pbtxt'
+	# PATH_TO_LABELS = os.path.join(TENSORFLOW_FOLDER,'data', 'lab_doors-detection.pbtxt')
 
 
-	NUM_CLASSES = 1
+	NUM_CLASSES = 9
 
 	# Initializing detection
 	detection_graph = tf.Graph()
@@ -106,11 +110,12 @@ def find_test_doors(PATH_TO_TEST_IMAGES_DIR):
 	                np.squeeze(classes).astype(np.int32),
 	                np.squeeze(scores),
 	                category_index,
-	                min_score_thresh = 0.31,
+	                min_score_thresh = 0.99,
 	                use_normalized_coordinates=True,
 	                line_thickness=8)
 	            #plt.figure(figsize=IMAGE_SIZE)
 	            #plt.imsave('/home/smarn/thesis/images/detected_doors/image{}.jpg'.format(i),image_np)
+	            #plt.imsave('/home/smarn/thesis/images/detected_doors/image_all.jpg',image_np)
 	            i = i + 1
 	            #plt.show()
 
