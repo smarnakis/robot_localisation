@@ -27,10 +27,18 @@ def load_image_into_numpy_array(image):
         (im_height, im_width, 3)).astype(np.uint8)
 
 def exclude_missdetections(boxes,scores,classes,num_detections):
+	blocks = [(),(),(),(),(),(),(),(),()]
+	num_detected = len(classes)
 	important_blocks = []
-	for i in range(len(classes)):
-		if scores[i] > 0.7:
-			important_blocks.append((boxes[i],scores[i],classes[i]))
+	for i in range(num_detected):
+		if blocks[classes[i]-1] == ():
+			blocks[classes[i]-1] = (boxes[i],scores[i],classes[i])
+		elif scores[i] > blocks[classes[i]-1][1]:
+			blocks[classes[i]-1] = (boxes[i],scores[i],classes[i])
+	for block in blocks:
+		print(block)
+		if block[1] > 0.4:
+			important_blocks.append(block)
 
 	return important_blocks
 
