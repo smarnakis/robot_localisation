@@ -41,7 +41,7 @@ def find_test_doors(PATH_TO_TEST_IMAGES_DIR):
 	PROJECT_FOLDER = '../../'
 
 	MODEL_FOLDER = 'tensorflow-object_detection/MODEL/'
-	MODEL_NAME = 'lab_doors2_graph_faster_RCNN_resnet'
+	MODEL_NAME = 'lab_doors3_graph_faster_RCNN_resnet'
 	
 	MODEL_PATH = PROJECT_FOLDER + MODEL_FOLDER + MODEL_NAME
 	
