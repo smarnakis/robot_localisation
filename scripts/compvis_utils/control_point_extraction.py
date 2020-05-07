@@ -152,7 +152,7 @@ def draw_CPTs(img,CPTs,COLOUR):
 		case = 1
 		img = cv.imread(img)
 	for CPT in CPTs:
-		if type(CPT) is tuple:
+		if type(CPT) is tuple  or len(CPTs[0])==2:
 			draw_circle(img,tuple(CPT),COLOUR)
 		else:
 			draw_circle(img,tuple(CPT[0]),COLOUR)
@@ -195,15 +195,27 @@ def draw_sift_matching(ref,test,M=[],matchesMask=[],good=[]):
 
 	img3 = cv.drawMatches(img1,kp1,img2,kp2,good,None,**draw_params)
 	plt.imshow(img3[:,:,::-1]),plt.show()
+	return dst
 
 ##### MAIN TESTING FUNCTIONS ######
 def main1():
+	ymin = 0.33355704
+	xmin = 0.72840554
 	TEST_IMAGE_PATHS = '../../images/detected_doors/DOOR8.jpg'
 	PATH_TO_REF_IMAGES_DIR = "../../images/reference/DOOR8"
+	TEST_IMAGE_PATH = '../../images/test/TEST1.jpg'
+	test_img = cv.imread(TEST_IMAGE_PATH,cv.COLOR_BGR2GRAY)
+	length,width,channels = test_img.shape
 	REF_IMAGE_PATHS = [os.path.join(PATH_TO_REF_IMAGES_DIR,im) for im in os.listdir(PATH_TO_REF_IMAGES_DIR)]
 	ref_image_path,M,matchesMask,good = find_best_homography(REF_IMAGE_PATHS,TEST_IMAGE_PATHS)
-	# ref_image_path = PATH_TO_REF_IMAGES_DIR
-	draw_sift_matching(ref_image_path,TEST_IMAGE_PATHS,M,matchesMask,good)
+	dst = draw_sift_matching(ref_image_path,TEST_IMAGE_PATHS,M,matchesMask,good)
+	# print(dst)
+	# print(ymin*length)
+	# print(xmin*width)
+	for CPT in dst:
+		CPT[0][0] = int(CPT[0][0] + xmin*width)
+		CPT[0][1] = int(CPT[0][1] + ymin*length)
+	draw_CPTs(TEST_IMAGE_PATH,dst,COLOURs[0])
 
 def main2():
 	TEST_IMAGE_PATH = '../../images/detected_doors/DOOR8.jpg'
@@ -211,5 +223,28 @@ def main2():
 	CPTs = [(500,310),(500,730),(500,1150),(670,370)]
 	draw_CPTs(REF_IMAGE_PATH,CPTs,COLOURs[0])
 
+
+def main3():
+	ymin = 0.33355704
+	xmin = 0.72840554
+	TEST_IMAGE_PATH = '../../images/test/TEST1.jpg'
+	test_img = cv.imread(TEST_IMAGE_PATH,cv.COLOR_BGR2GRAY)
+	length,width,channels = test_img.shape
+	CPTs = [[500,600],[500,1000],[1000,1000],[1500,1000]]
+	for CPT in CPTs:
+		CPT[0] = int(CPT[0] + ymin*length)
+		CPT[1] = int(CPT[1] + xmin*width)
+	draw_CPTs(test_img,CPTs,COLOURs[0])
+	plt.imshow(test_img[:,:,::-1]),plt.show()
+
+
+def main4(image_blocks):
+
+	plt.imshow(image_blocks[0][0]),plt.show()
+	# print("image block len:")
+	# print(len(image_blocks))
+	# for block in image_blocks:
+	# 	REF_IMAGE_PATH = "../../images/reference/DOOR" + block[2]
+
 if __name__ == '__main__':
-	main1()
+	main2()
