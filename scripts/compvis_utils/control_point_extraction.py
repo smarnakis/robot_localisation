@@ -17,34 +17,23 @@ from PIL import ImageDraw
 from IPython.display import display
 import ast
 import cv2 as cv
-matplotlib.use('TkAgg')
-# CPTs = [(20,560),(450,560),(840,560),(35,1000),(450,1000),(830,1000),(50,1490),(450,1480),(820,1480)]
+# matplotlib.use('TkAgg')
 
-COLOURs = [(0,0,100),(100,0,0),(0,100,0)]
 
+COLOURs = [(0,0,100),(0,100,0),(0,100,100),(100,0,0),
+						(100,0,100),(100,100,0),(100,50,100),
+						(100,100,200),(100,100,50)]
 def crop_pil(im_path):
 	pil = Image.open(im_path)
 	width, height = pil.size 
-	left = width / 5
-	top = height / 4 - 50
-	right = 4 * width / 5 - 50
-	bottom = 3 * height / 4 -50
+	left = width / 8
+	top = 0
+	right =2* width / 3
+	bottom = height
 	res = pil.crop((left,top,right,bottom))
-	#res.show()
-	res.save('../../images/reference/DOOR5.3.jpg')
+	res.show()
+	# res.save('../../images/reference/DOOR6/DOOR6.5.jpg')
 
-def get_reference_image_path():
-	print(sys.path[-1])
-	PROJECT_HOME_FOLDER = 	"../../"
-	PATH_TO_REF_IMAGES_DIR = PROJECT_HOME_FOLDER + "images/reference"
-	REF_IMAGE_PATHS = [os.path.join(PATH_TO_REF_IMAGES_DIR,im) for im in os.listdir(PATH_TO_REF_IMAGES_DIR)]
-	print(REF_IMAGE_PATHS)	
-	PATH_TO_TEST_IMAGES_DIR = PROJECT_HOME_FOLDER + "images/detected_doors"
-	TEST_IMAGE_PATHS = [os.path.join(PATH_TO_TEST_IMAGES_DIR,im) for im in os.listdir(PATH_TO_TEST_IMAGES_DIR)]
-
-	print(TEST_IMAGE_PATHS)
-	#image = Image.open(TEST_IMAGE_PATHS[0])
-	return TEST_IMAGE_PATHS,REF_IMAGE_PATHS
 
 def load_image_into_numpy_array(image):
     (im_width, im_height) = image.size
@@ -53,7 +42,18 @@ def load_image_into_numpy_array(image):
 
 ###### CONTROL POINT EXTRACTION FUNCTIONS #######
 
+#<-------- HOMOGRAPHY RELATED FUNCTIONS -------># 
 def Homography(kp1,des1,kp2,des2):
+	# Usage: Given the key points and desctiptors of a scr and dst image
+	# it computes the homography matrix betwenn the two 
+	# images, using Lowe's ratio filtering and RANSAC filtering.
+	# Inputs: kp1: Source image keypoints
+	# 				des1: Source image descriptors
+	# 				kp2: Destination image keypoints
+	# 				des2: Destination image descriptors
+	# Outputs: 	M: Homography matrix
+	# 					matchesMask: Final inliers after RANSAC and Lowe's
+	# 					good: Inliers of Lowe's filtering
 	FLANN_INDEX_KDTREE = 1
 
 	# Matcher
@@ -122,6 +122,13 @@ def find_best_homography(ref_paths,test):
 	return ref_image_path,best_M,best_Mask,best_good
 
 def find_best_homo_pair(REF_PATHS,img2):
+	# USAGE: Given a test image block and the corresponding reference
+	# images, it finds the reference image that can be better matched
+	# with the test image block.
+	# INPUTS: REF_PATHS: the paths to the reference images that correspond to the test image block
+	#					img2: the test image block in np.array format [width,length,channels(BGR)]
+	# OUTPUS: BEST_REF_PATH: the path to the best reference image
+	#					best_M: The homography matrix between the test image block and the best ref image
 	MIN_MATCH_COUNT = 30
 	MIN_FILTERED = 10
 
@@ -152,10 +159,70 @@ def find_best_homo_pair(REF_PATHS,img2):
 	return BEST_REF_PATH,best_M
 
 def sift(img):
+	# USAGE: Performs the SIFT algorithm
+	# INPUTS: img: An image in np.array format [width,lenght,channels(BGR)]
+	# OUTPUTS: kp: The detected keypoints
+	# 				 des: The discriptors of the detected keypoints
 	sift = cv.xfeatures2d.SIFT_create()
 	kp, des = sift.detectAndCompute(img,None)
 	des = np.float32(des)
 	return kp,des
+
+#<---------- CONTROL POINTS PROCESSING FUNCTIONS ---------># 
+def bring_ref_CPTS(tags):
+	# USAGE: Given the desired reference image tags, it retrieves the
+	# corresponding CPTS of the reference images from the database
+	# INPUTS: tags: String list with the image tags
+	# OUTPUTS: data: tuple of format: 
+	# (String:ref_image_tag,list of tuples:Image CPT coords,list of tuples: Space CPT coords) 
+	DATABASE_PATH = "../../images/reference/CPTS.txt"
+	f = open(DATABASE_PATH,"rt")
+	lines = f.readlines()
+	data = []
+	i = 0
+	last_tag = tags[-1]
+	for line in lines:
+		while(tags[i]==""):
+			data.append(())
+			i += 1
+		line = line.split(" | ")
+		print(line[0],tags[i])
+		if tags[i] == line[0]:
+			i += 1
+			print(i)
+			data.append((line[0],ast.literal_eval(line[1]),ast.literal_eval(line[2])))
+		if tags[i-1] == last_tag and i!=0:
+			break
+	print(data)
+	f.close()
+	return data
+
+def trans_relative_test_CPTS(ref_data,Ms):
+	# USAGE: Uses the Homography transform to 
+	rel_CPTS = []
+	for i in range(len(Ms)):
+		if Ms[i] != []:
+			ref_CPTS = np.float32(ref_data[i][1]).reshape(-1,1,2)
+			CPTS = cv.perspectiveTransform(ref_CPTS,Ms[i])
+			rel_CPTS.append(CPTS)
+		else:
+			rel_CPTS.append([])
+	return rel_CPTS
+	
+def abs_test_CPTS(relative_test_CPTS,origins):
+	test_CPTS = []
+	test_CPTS_vis = []
+	for i,block in enumerate(relative_test_CPTS):
+		if block != []:
+			x_or = origins[i][0]
+			y_or = origins[i][1]
+			vis_block = []
+			for CPT in block:
+				print(CPT)
+				test_CPTS.append((int(x_or+CPT[0][0]),int(y_or+CPT[0][1])))
+				vis_block.append((int(x_or+CPT[0][0]),int(y_or+CPT[0][1])))
+			test_CPTS_vis.append(vis_block)
+	return test_CPTS,test_CPTS_vis
 
 ######## VISUALISATION FUNCTIONS #########
 
@@ -203,10 +270,12 @@ def draw_circle(img,centre,COLOUR):
 	img = cv.circle(img,centre,3,COLOUR,THICKNESS)
 
 
-def draw_sift_matching(ref,test,M=[],matchesMask=[],good=[]):
+def draw_sift_matching(img1,img2,pts=[],M=[],matchesMask=[],good=[]):
 
-	img1 = cv.imread(ref,cv.COLOR_BGR2GRAY)
-	img2 = cv.imread(test,cv.COLOR_BGR2GRAY)
+	if type(img1) is str:
+		img1 = cv.imread(img1)
+	if type(img2) is str:
+		img2 = cv.imread(img2)
 
 	kp1, des1 = sift(img1)
 	kp2, des2 = sift(img2)
@@ -216,8 +285,10 @@ def draw_sift_matching(ref,test,M=[],matchesMask=[],good=[]):
 
 	# DRAW CPTS to Both Images
 	# pts = np.float32([ [500,170],[500,930],[700,930],[700,170] ]).reshape(-1,1,2)
-	pts = np.float32([(500,310),(500,730),(500,1150),(670,370)]).reshape(-1,1,2)
-	
+	if pts == []:
+		pts = np.float32([(10,30),(430,30),(870,30),(30,515),(430,515),(850,515),(60,980),(430,990),(840,1000)]).reshape(-1,1,2)
+	else:
+		pts = np.float32(pts).reshape(-1,1,2)
 	draw_CPTs(img1,pts,COLOURs[0])
 	dst = cv.perspectiveTransform(pts,M)
 	draw_CPTs(img2,dst,COLOURs[0])
@@ -233,52 +304,7 @@ def draw_sift_matching(ref,test,M=[],matchesMask=[],good=[]):
 	img3 = cv.drawMatches(img1,kp1,img2,kp2,good,None,**draw_params)
 	plt.imshow(img3[:,:,::-1]),plt.show()
 	return dst
-##### FILE MANAGEMENT #######
-def bring_ref_CPTS(tags):
-	DATABASE_PATH = "../../images/reference/CPTS.txt"
-	f = open(DATABASE_PATH,"rt")
-	lines = f.readlines()
-	data = []
-	i = 0
-	for line in lines:
-		while(tags[i]==""):
-			data.append(())
-			i += 1
-		line = line.split(" | ")
-		print(line[0],tags[i])
-		if tags[i] == line[0]:
-			i += 1
-			print(i)
-			data.append((line[0],ast.literal_eval(line[1]),ast.literal_eval(line[2])))
-	print(data)
-	f.close()
-	return data
 
-def trans_relative_test_CPTS(ref_data,Ms):
-	rel_CPTS = []
-	for i in range(len(Ms)):
-		if Ms[i] != []:
-			ref_CPTS = np.float32(ref_data[i][1]).reshape(-1,1,2)
-			CPTS = cv.perspectiveTransform(ref_CPTS,Ms[i])
-			rel_CPTS.append(CPTS)
-		else:
-			rel_CPTS.append([])
-	return rel_CPTS
-	
-def abs_test_CPTS(relative_test_CPTS,origins):
-	test_CPTS = []
-	test_CPTS_vis = []
-	for i,block in enumerate(relative_test_CPTS):
-		if block != []:
-			x_or = origins[i][0]
-			y_or = origins[i][1]
-			vis_block = []
-			for CPT in block:
-				print(CPT)
-				test_CPTS.append((int(x_or+CPT[0][0]),int(y_or+CPT[0][1])))
-				vis_block.append((int(x_or+CPT[0][0]),int(y_or+CPT[0][1])))
-			test_CPTS_vis.append(vis_block)
-	return test_CPTS,test_CPTS_vis
 
 ##### MAIN TESTING FUNCTIONS ######
 def main1():
@@ -301,10 +327,11 @@ def main1():
 	draw_CPTs(TEST_IMAGE_PATH,dst,COLOURs[0])
 
 def main2():
-	TEST_IMAGE_PATH = '../../images/detected_doors/DOOR8.jpg'
-	REF_IMAGE_PATH = "../../images/reference/DOOR8/DOOR8.5.jpg"
-	CPTs = [(500,310),(500,730),(500,1150),(670,370)]
-	draw_CPTs(REF_IMAGE_PATH,CPTs,COLOURs[0])
+	TEST_IMAGE_PATH = '../../images/detected_doors/DOOR9.jpg'
+	REF_IMAGE_PATH = "../../images/reference/DOOR9/DOOR9.2.jpg"
+	CPTs = [(50,200),(530,205),(1000,210),(50,775),(550,775),(1020,775),(50,1350),(550,1350),(1030,1350)]
+	# draw_CPTs(REF_IMAGE_PATH,CPTs,COLOURs[0])
+	draw_sift_matching(REF_IMAGE_PATH,TEST_IMAGE_PATH,CPTs)
 
 
 def main3():
@@ -321,13 +348,15 @@ def main3():
 	plt.imshow(test_img[:,:,::-1]),plt.show()
 
 
-def main4(test_image_blocks):
+def algorithm1(test_image_blocks):
 	tags = []
 	Ms = []
 	origins = []
-	TEST_IMAGE_PATH = '../../images/test/TEST1.jpg'
+	PATH_TO_TEST_IMAGE = '../../images/test'
+	TEST_IMAGE_PATH = os.path.join(PATH_TO_TEST_IMAGE,os.listdir(PATH_TO_TEST_IMAGE)[0])
 	for block in test_image_blocks:
 		PATH_TO_REF_IMAGES_DIR = "../../images/reference/DOOR" + str(block[2])
+		draw_tag = "../../images/detected_doors/DOOR" + str(block[2]) + ".jpg"
 		REF_IMAGE_PATHS = [os.path.join(PATH_TO_REF_IMAGES_DIR,im) for im in os.listdir(PATH_TO_REF_IMAGES_DIR)]
 		test_img_block = block[0]
 		origins.append(block[1])
@@ -335,16 +364,25 @@ def main4(test_image_blocks):
 		Ms.append(best_M)
 		if best_M != []:
 			tags.append(ref_image_path.split('/')[-1])
+			# draw_sift_matching(ref_image_path,draw_tag)
 		else:
 			tags.append("")
+
 	ref_data = bring_ref_CPTS(tags)
-	#print(ref_data)
+
 	relative_test_CPTS = trans_relative_test_CPTS(ref_data,Ms)
-	# print(relative_test_CPTS)
+
 	test_CPTS,test_CPTS_vis = abs_test_CPTS(relative_test_CPTS,origins)
 	print(test_CPTS)
 	draw_test_CPTS(TEST_IMAGE_PATH,test_CPTS_vis)
 
+
 if __name__ == '__main__':
 	tags = ["", 'DOOR8.5.jpg', "",'DOOR9.1.jpg']
-	bring_ref_CPTS(tags)
+	# bring_ref_CPTS(tags)
+	im_path = "../../images/vis_utils_test/test.jpg"
+	# crop_pil(im_path)
+	main2()
+	# PATH_TO_TEST_IMAGE = '../../images/test'
+	# TEST_IMAGE_PATH = os.path.join(PATH_TO_TEST_IMAGE,os.listdir(PATH_TO_TEST_IMAGE)[0])
+	# print(TEST_IMAGE_PATH)
