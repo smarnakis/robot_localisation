@@ -200,14 +200,16 @@ def bring_ref_CPTS(tags):
 def trans_relative_test_CPTS(ref_data,Ms):
 	# USAGE: Uses the Homography transform to 
 	rel_CPTS = []
+	space_coords = []
 	for i in range(len(Ms)):
 		if Ms[i] != []:
 			ref_CPTS = np.float32(ref_data[i][1]).reshape(-1,1,2)
+			space_coords.append(ref_data[i][2])
 			CPTS = cv.perspectiveTransform(ref_CPTS,Ms[i])
 			rel_CPTS.append(CPTS)
 		else:
 			rel_CPTS.append([])
-	return rel_CPTS
+	return rel_CPTS,space_coords
 	
 def abs_test_CPTS(relative_test_CPTS,origins):
 	test_CPTS = []
@@ -218,7 +220,7 @@ def abs_test_CPTS(relative_test_CPTS,origins):
 			y_or = origins[i][1]
 			vis_block = []
 			for CPT in block:
-				print(CPT)
+				# print(CPT)
 				test_CPTS.append((int(x_or+CPT[0][0]),int(y_or+CPT[0][1])))
 				vis_block.append((int(x_or+CPT[0][0]),int(y_or+CPT[0][1])))
 			test_CPTS_vis.append(vis_block)
@@ -289,9 +291,11 @@ def draw_sift_matching(img1,img2,pts=[],M=[],matchesMask=[],good=[]):
 		pts = np.float32([(10,30),(430,30),(870,30),(30,515),(430,515),(850,515),(60,980),(430,990),(840,1000)]).reshape(-1,1,2)
 	else:
 		pts = np.float32(pts).reshape(-1,1,2)
-	draw_CPTs(img1,pts,COLOURs[0])
+	# draw_CPTs(img1,pts,COLOURs[0])
+	print("SIFT M:")
+	print(M)
 	dst = cv.perspectiveTransform(pts,M)
-	draw_CPTs(img2,dst,COLOURs[0])
+	# draw_CPTs(img2,dst,COLOURs[0])
 
 	# draw_contour(img1,img2,M,pts)
 
@@ -327,11 +331,11 @@ def main1():
 	draw_CPTs(TEST_IMAGE_PATH,dst,COLOURs[0])
 
 def main2():
-	TEST_IMAGE_PATH = '../../images/detected_doors/DOOR9.jpg'
-	REF_IMAGE_PATH = "../../images/reference/DOOR9/DOOR9.2.jpg"
-	CPTs = [(50,200),(530,205),(1000,210),(50,775),(550,775),(1020,775),(50,1350),(550,1350),(1030,1350)]
+	TEST_IMAGE_PATH = '../../images/detected_doors/DOOR3.jpg'
+	REF_IMAGE_PATH = "../../images/reference/DOOR3/DOOR3.1.jpg"
+	CPTs = [(30,270),(600,270),(30,880),(600,880),(50,1490),(580,1480),(750,730),(750,870)]
 	# draw_CPTs(REF_IMAGE_PATH,CPTs,COLOURs[0])
-	draw_sift_matching(REF_IMAGE_PATH,TEST_IMAGE_PATH,CPTs)
+	# draw_sift_matching(REF_IMAGE_PATH,TEST_IMAGE_PATH,CPTs)
 
 
 def main3():
@@ -363,6 +367,8 @@ def algorithm1(test_image_blocks):
 		ref_image_path,best_M = find_best_homo_pair(REF_IMAGE_PATHS,test_img_block)
 		Ms.append(best_M)
 		if best_M != []:
+			print("ALGO1")
+			print(best_M)
 			tags.append(ref_image_path.split('/')[-1])
 			# draw_sift_matching(ref_image_path,draw_tag)
 		else:
@@ -370,8 +376,11 @@ def algorithm1(test_image_blocks):
 
 	ref_data = bring_ref_CPTS(tags)
 
-	relative_test_CPTS = trans_relative_test_CPTS(ref_data,Ms)
-
+	relative_test_CPTS,space_coords = trans_relative_test_CPTS(ref_data,Ms)
+	space_coordinates = []
+	for block in space_coords:
+		space_coordinates = space_coordinates + block
+	print(space_coordinates)
 	test_CPTS,test_CPTS_vis = abs_test_CPTS(relative_test_CPTS,origins)
 	print(test_CPTS)
 	draw_test_CPTS(TEST_IMAGE_PATH,test_CPTS_vis)
@@ -382,7 +391,7 @@ if __name__ == '__main__':
 	# bring_ref_CPTS(tags)
 	im_path = "../../images/vis_utils_test/test.jpg"
 	# crop_pil(im_path)
-	main2()
+	#main2()
 	# PATH_TO_TEST_IMAGE = '../../images/test'
 	# TEST_IMAGE_PATH = os.path.join(PATH_TO_TEST_IMAGE,os.listdir(PATH_TO_TEST_IMAGE)[0])
 	# print(TEST_IMAGE_PATH)

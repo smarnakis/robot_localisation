@@ -86,7 +86,7 @@ def chop_block(or_image,block_bounds):
 def save_image_parts(image_blocks):
 
 	for block in image_blocks:
-		tmp_pil = Image.fromarray(block[0])
+		tmp_pil = Image.fromarray(block[0][:,:,::-1])
 		tmp_label = block[2]
 		image_name = 'DOOR' + str(tmp_label) + '.jpg'
 		tmp_pil.save('../../images/detected_doors/'+image_name)
