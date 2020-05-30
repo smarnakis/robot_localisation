@@ -380,10 +380,13 @@ def algorithm1(test_image_blocks):
 	space_coordinates = []
 	for block in space_coords:
 		space_coordinates = space_coordinates + block
+	print("XYZ=")
 	print(space_coordinates)
 	test_CPTS,test_CPTS_vis = abs_test_CPTS(relative_test_CPTS,origins)
+	print("xy=")
 	print(test_CPTS)
-	draw_test_CPTS(TEST_IMAGE_PATH,test_CPTS_vis)
+	# draw_test_CPTS(TEST_IMAGE_PATH,test_CPTS_vis)
+	return space_coordinates,test_CPTS
 
 
 if __name__ == '__main__':

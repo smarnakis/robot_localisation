@@ -32,8 +32,22 @@ def r2d(theta):
 	alpha = (180/pi)*theta
 	return alpha
 
-
-
+def load_intrincis():
+	with open(r'../../camera_caliblation/camera_intrinsics.yaml') as file:
+		documents = yaml.full_load(file)
+	for item, doc in documents.items():
+		if item == "coordinates":
+			coord_sys = doc
+		if item == "focalx":
+			fx = int(doc)
+		if item == "focaly":
+			fy = int(doc)
+		if item == "ppoffsetx":
+			x0 = int(doc)
+		if item == "ppoffsety":
+			y0 = int(doc)
+	f = int((fx + fy)/2)
+	return x0,y0,f
 
 def space_resection(XYZ,xy,eop,f):
 	xp = xy[:,0]
@@ -125,70 +139,55 @@ def space_resection(XYZ,xy,eop,f):
 		# print("ii:",ii,"res:",omega,phi,kappa,x0,y0,z0)
 	return omega,phi,kappa,x0,y0,z0
 
-
-def main2(om,ph,kp):
-	xy = np.array([(1347, 966), (1766, 975), (2206, 985), (1354, 1466), (1766, 1476), (2199, 1486), (1372, 1978), (1766, 1999), (2203, 2020), (586, 802), (856, 882), (575, 2236), (843, 2120)])
-	XYZ = np.array([(0, 130, 2170), (0, 1050, 2170), (0, 1970, 2170), (0, 130, 1085), (0, 1050, 1085), (0, 1970, 1085), (0, 130, 0), (0, 1050, 0), (0, 1970, 0), (2425, 0, 2140), (1550, 0, 2140), (2425, 0, 0), (1550, 0, 0)])
-	XYZ = XYZ * 0.001;
-	xy[:,0] = xy[:,0] - 2325
-	xy[:,1] = xy[:,1] - 1736
+def pre_processing(XYZ,xy):
+	x0,y0,f = 2325,1736,3623
 	pixel_size = 1.12e-6
-	xy = xy * pixel_size
-	# y0,x0,f = load_intrincis()
-	f = 3623 * pixel_size
-	# iop = [x0,y0,f]
-	# init_eop = [round(d2r(0),5),round(d2r(0),5),round(d2r(0),5),0.0,0.05,0.1]
-	init_eop = [round(d2r(om),5),round(d2r(ph),5),round(d2r(kp),5),0.0,0.05,0.1]
-	# print(init_eop)
-	omega,phi,kappa,x0,y0,z0 = space_resection(XYZ,xy,init_eop,f)
-	print("SUCCESS!!!!! robot position is: X:",round(x0,3),"m ,Y:",round(y0,3),"m ,Z:",round(z0,3),"m")
-	print("Robot Position is: X:",round(x0,3),"m ,Y:",round(y0,3),"m ,Z:",round(z0,3),"m")
-	print("Robot Orientation is: ω:",round(r2d(omega),3),"degrees ,φ:",round(r2d(phi),3),"degrees ,κ:",round(r2d(kappa),3),"degrees")	
 
-def main1():
-	xy = np.array([(1581, 107), (2730, 381), (1635, 1865), (2690, 1737), (1680, 3338), (2590, 2955), (3195, 326), (3885, 453), (3148, 1659), (3776, 1608), (3092, 2763), (3683, 2586)])
-	XYZ = np.array([(13290, 2670, 2160), (14290, 2670, 2160), (13290, 2670, 1080), (14290, 2670, 1080), (13290, 2670, 0), (14290, 2670, 0), (14710, 2670, 2160), (15710, 2670, 2160), (14710, 2670, 1080), (15710, 2670, 1080), (14710, 2670, 0), (15710, 2670, 0)])
-	XYZ = XYZ * 0.001;
-	xy[:,0] = xy[:,0] - 2325
-	xy[:,1] = xy[:,1] - 1736
-	pixel_size = 1.12e-6
+	xy = np.array(xy)
+	XYZ = np.array(XYZ)
+	
+	XYZ = XYZ * 0.001
+	
+	xy[:,0] = xy[:,0] - x0
+	xy[:,1] = xy[:,1] - y0
 	xy = xy * pixel_size
-	# y0,x0,f = load_intrincis()
-	f = 3623 * pixel_size
-	# iop = [x0,y0,f]
-	init_eop = [round(d2r(20),5),round(d2r(10),5),round(d2r(-30),5),0.0,0.05,0.1]
-	print(init_eop)
-	omega,phi,kappa,x0,y0,z0 = space_resection(XYZ,xy,init_eop,f)
+	f *= pixel_size
+
+	return XYZ,xy,f
+
+def position_estimation(XYZ,xy):
+	XYZ,xy,f = pre_processing(XYZ,xy)
+	stop = 0
+	for omega_init in range(-170,170,20):
+		for phi_init in range(-80,80,10):
+			eop = [round(d2r(omega_init),5),round(d2r(phi_init),5),round(d2r(0),5),0.0,0.05,0.1]
+			omega,phi,kappa,x0,y0,z0 = space_resection(XYZ,xy,eop,f)
+			if x0 < 21.0 and x0 > -1.0 and y0 < 4 and y0 > -1.0 and z0 > 0.0:
+				# print(omega_in,phi_in)
+				stop = 1
+				break
+		if stop:
+			break
+
 	print("SUCCESS!!!!!")
 	print("Robot Position    is: X:",round(x0,3),"m ,    Y:",round(y0,3),"m ,      Z:",round(z0,3),"m")
 	print("Robot Orientation is: ω:",round(r2d(omega),3),"degrees ,φ:",round(r2d(phi),3),"degrees ,κ:",round(r2d(kappa),3),"degrees")	
-
-def main3(om,ph):
-	kp = 0
-	xy = np.array([(1896, 1039), (2971, 1057), (1914, 2137), (2927, 2165), (1932, 3162), (2886, 3197), (166, 1004), (1157, 1029), (147, 2071), (1169, 2092), (164, 3207), (1145, 3205)])
-
-	XYZ = np.array([(2670, 3490, 2160), (3670, 3490, 2160), (2670, 3490, 1080), (3670, 3490, 1080), (2670, 3490, 0), (3670, 3490, 0), (1170, 3490, 2160), (2170, 3490, 2160), (1170, 3490, 1080), (2170, 3490, 1080), (1170, 3490, 0), (2170, 3490, 0)])
-
-	XYZ = XYZ * 0.001;
-	xy[:,0] = xy[:,0] - 2325
-	xy[:,1] = xy[:,1] - 1736
-	pixel_size = 1.12e-6
-	xy = xy * pixel_size
-	# y0,x0,f = load_intrincis()
-	f = 3623 * pixel_size
-	# iop = [x0,y0,f]
-	init_eop = [round(d2r(om),5),round(d2r(ph),5),round(d2r(kp),5),0.0,0.05,0.1]
-	# print(init_eop)
-	omega,phi,kappa,x0,y0,z0 = space_resection(XYZ,xy,init_eop,f)
-	return omega,phi,kappa,x0,y0,z0
 
 
 if __name__ == '__main__':
-	for omega in range(-170,170,20):
-		for phi in range(-80,80,10):
-			omega,phi,kappa,x0,y0,z0 = main3(omega,phi)
-			if x0 < 21.0 and x0 > -1.0 and y0 < 5 and y0 > -1.0 and z0 > 0.0:
-				break
-	print("SUCCESS!!!!!")
-	print("Robot Position    is: X:",round(x0,3),"m ,    Y:",round(y0,3),"m ,      Z:",round(z0,3),"m")
-	print("Robot Orientation is: ω:",round(r2d(omega),3),"degrees ,φ:",round(r2d(phi),3),"degrees ,κ:",round(r2d(kappa),3),"degrees")	
+	# DOORS 2-3
+	xy = [(1896, 1039), (2971, 1057), (1914, 2137), (2927, 2165), (1932, 3162), (2886, 3197), (166, 1004), (1157, 1029), (147, 2071), (1169, 2092), (164, 3207), (1145, 3205)]
+	XYZ = [(2670, 3490, 2160), (3670, 3490, 2160), (2670, 3490, 1080), (3670, 3490, 1080), (2670, 3490, 0), (3670, 3490, 0), (1170, 3490, 2160), (2170, 3490, 2160), (1170, 3490, 1080), (2170, 3490, 1080), (1170, 3490, 0), (2170, 3490, 0)]
+	
+	# DOORS 6-7
+	xy = [(1581, 107), (2730, 381), (1635, 1865), (2690, 1737), (1680, 3338), (2590, 2955), (3195, 326), (3885, 453), (3148, 1659), (3776, 1608), (3092, 2763), (3683, 2586)]
+	XYZ = [(13290, 2670, 2160), (14290, 2670, 2160), (13290, 2670, 1080), (14290, 2670, 1080), (13290, 2670, 0), (14290, 2670, 0), (14710, 2670, 2160), (15710, 2670, 2160), (14710, 2670, 1080), (15710, 2670, 1080), (14710, 2670, 0), (15710, 2670, 0)]
+	
+	# DOORS 4-5
+	xy = [(1347, 966), (1766, 975), (2206, 985), (1354, 1466), (1766, 1476), (2199, 1486), (1372, 1978), (1766, 1999), (2203, 2020), (586, 802), (856, 882), (575, 2236), (843, 2120)]
+	XYZ = [(0, 130, 2170), (0, 1050, 2170), (0, 1970, 2170), (0, 130, 1085), (0, 1050, 1085), (0, 1970, 1085), (0, 130, 0), (0, 1050, 0), (0, 1970, 0), (2425, 0, 2140), (1550, 0, 2140), (2425, 0, 0), (1550, 0, 0)]
+	
+	# DOORS 8-9
+	xy = [(1324, 926), (1989, 950), (2585, 972), (1328, 1601), (1981, 1622), (2573, 1641), (1329, 2383), (1972, 2384), (2561, 2399)]
+	XYZ = [(20550, 480, 2140), (20550, 1400, 2140), (20550, 2320, 2140), (20550, 480, 1070), (20550, 1400, 1070), (20550, 2320, 1070), (20550, 480, 0), (20550, 1400, 0), (20550, 2320, 0)]
+	position_estimation(XYZ,xy)

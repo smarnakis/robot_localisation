@@ -8,6 +8,7 @@ import os
 sys.path.append('..')
 from detection.door_detection import find_test_doors
 from compvis_utils.control_point_extraction import algorithm1
+from compvis_utils.space_resection import position_estimation
 matplotlib.use('TkAgg')
 
 def get_ref_test_image_path():
@@ -132,7 +133,8 @@ def main():
 	important_blocks = exclude_missdetections(boxes,scores,classes,num_detections)
 	# print(important_blocks)
 	image_blocks = seperate_blocks(image,important_blocks)
-	algorithm1(image_blocks)
+	XYZ,xy = algorithm1(image_blocks)
+	position_estimation(XYZ,xy)
 	# print(image_blocks[2][0].shape)
 	save_image_parts(image_blocks)
 	#test_ref_pairs = match_with_reference(image_blocks,PATH_TO_REF_IMAGES_DIR)
