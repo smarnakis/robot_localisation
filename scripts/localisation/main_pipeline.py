@@ -11,15 +11,17 @@ from compvis_utils.control_point_extraction import algorithm1
 from compvis_utils.space_resection import position_estimation
 matplotlib.use('TkAgg')
 
+
+
 def get_ref_test_image_path():
 	PROJECT_HOME_FOLDER = 	"../../"
 	PATH_TO_REF_IMAGES_DIR = PROJECT_HOME_FOLDER + "images/reference"
 	REF_IMAGE_PATHS = [os.path.join(PATH_TO_REF_IMAGES_DIR,im) for im in os.listdir(PATH_TO_REF_IMAGES_DIR)]
-	print(REF_IMAGE_PATHS)	
+	# print(REF_IMAGE_PATHS)	
 	PATH_TO_TEST_IMAGES_DIR = PROJECT_HOME_FOLDER + "images/test"
 	TEST_IMAGE_PATHS = [os.path.join(PATH_TO_TEST_IMAGES_DIR,im) for im in os.listdir(PATH_TO_TEST_IMAGES_DIR)]
 
-	print(TEST_IMAGE_PATHS)
+	# print(TEST_IMAGE_PATHS)
 	#image = Image.open(TEST_IMAGE_PATHS[0])
 	return PATH_TO_REF_IMAGES_DIR,PATH_TO_TEST_IMAGES_DIR
 
@@ -44,7 +46,7 @@ def exclude_missdetections(boxes,scores,classes,num_detections):
 	
 	# Keep only blocks with score > 0.4
 	for block in blocks:
-		print(block)
+		# print(block)
 		if block[1] > 0.4:
 			tmp_blocks.append(block)
 
@@ -100,8 +102,8 @@ def seperate_blocks(or_image,imp_bl):
 	image_blocks = []
 	for block in imp_bl:
 		# print('DOOR')
-		print(block[2])
-		print(block[1])
+		# print(block[2])
+		# print(block[1])
 		cropped_im,origin = chop_block(or_image,block[0])
 		image_blocks.append((cropped_im,origin,block[2]))
 	return image_blocks
@@ -126,23 +128,49 @@ def match_with_reference(image_blocks,PATH_TO_REF_IMAGES_DIR):
 
 def main():
 	# Bring test image and image blocks
-	# PATH_TO_TEST_IMAGES_DIR = '../../images/test'
 	PATH_TO_REF_IMAGES_DIR,PATH_TO_TEST_IMAGES_DIR = get_ref_test_image_path()
-	image,boxes,scores,classes,num_detections = find_test_doors(PATH_TO_TEST_IMAGES_DIR)
 	
+	print("#------------------------------------------------#")
+	print("#~~~~~~~~~~Robot localisation algorithm!~~~~~~~~~#")
+	print()
+	print("--------------------TENSORFOW WARN ---------------------------------")
+	image,boxes,scores,classes,num_detections = find_test_doors(PATH_TO_TEST_IMAGES_DIR)
+	print("--------------------------------------------------------------------")
+	print("# 1st stage ignition: Static Object Detection  #")
+	print("# Calculating...")	
 	important_blocks = exclude_missdetections(boxes,scores,classes,num_detections)
-	# print(important_blocks)
 	image_blocks = seperate_blocks(image,important_blocks)
+	print("# First stage completed!")
+	print("# Doors detected:")
+	for block in image_blocks:
+		print("# DOOR",block[2])
+
+	print("# 2nd stage ignition: Control Point Extraction  #")
+	print("# Calculating...")
 	XYZ,xy = algorithm1(image_blocks)
-	position_estimation(XYZ,xy)
-	# print(image_blocks[2][0].shape)
-	save_image_parts(image_blocks)
-	#test_ref_pairs = match_with_reference(image_blocks,PATH_TO_REF_IMAGES_DIR)
-	# main4(image_blocks)
-	#print(len(test_ref_pairs))
-	#print(test_ref_pairs)
-	# plt.imsave('/home/smarn/thesis/images/detected_doors/image.jpg',image)
-	# sift(image_blocks[0][1])
+	print("# The following Control Points were gathered:")
+	print("#")
+	print("# Space coordinates (mm):")
+
+	print("#",XYZ)
+	# for CPT in XYZ:
+	# 	print("#",CPT)
+	print("#")
+	print("# Space coordinates (pixels):")
+	print("#",xy)
+	# for CPT in xy:
+	# 	print("#",CPT)
+	print("#")
+	print("# 3rd stage ignition: Position Estimation  #")
+	print("# Calculating...")
+	x0,y0,z0,res = position_estimation(XYZ,xy)
+	print("# SUCCESS!!!!!")
+	print("# Robot Position    is: X:",round(x0,3),"m , Y:",round(y0,3),"m , Z:",round(z0,3),"m")
+	print("# Residual =",res,"m")
+	print("#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#")
+	print("#-------------------------------------------------#")
+	# save_image_parts(image_blocks)
+
 
 
 

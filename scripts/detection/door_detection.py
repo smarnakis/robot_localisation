@@ -55,7 +55,7 @@ def find_test_doors(PATH_TO_TEST_IMAGES_DIR):
 
 
 	NUM_CLASSES = 9
-
+	
 	# Initializing detection
 	detection_graph = tf.Graph()
 	with detection_graph.as_default():

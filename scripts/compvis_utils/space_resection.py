@@ -155,7 +155,26 @@ def pre_processing(XYZ,xy):
 
 	return XYZ,xy,f
 
+def check_distance(a,b,A,B,O,x0,y0,f):
+	o = (x0,y0)
+	g = ((b[0]-a[0])/2 + a[0],(b[1]-a[1])/2 + a[1])
+	G = ((B[0]-A[0])/2 + A[0],(B[1]-A[1])/2 + A[1],(B[2]-A[2])/2 + A[2])
+	Oo = f
+	og = sqrt(pow(g[0] - o[0],2)+pow(g[1]-o[1],2))
+	Og = sqrt(pow(Oo,2)+pow(og,2))
+	AB = sqrt(pow(A[0]-B[0],2) + pow(A[1]-B[1],2) + pow(A[2]-B[2],2))
+	ab = sqrt(pow(a[0]-b[0],2) + pow(a[1]-b[1],2))
+	OG = Og/ab *AB
+	de = sqrt(pow(O[0]-G[0],2) + pow(O[1]-G[1],2))
+	res = sqrt(pow(OG-de,2))
+	# print("res:",gamma*0.001)
+	return res
+
 def position_estimation(XYZ,xy):
+	A = XYZ[0]
+	B = XYZ[-1]
+	a = xy[0]
+	b = xy[-1]
 	XYZ,xy,f = pre_processing(XYZ,xy)
 	stop = 0
 	for omega_init in range(-170,170,20):
@@ -169,9 +188,11 @@ def position_estimation(XYZ,xy):
 		if stop:
 			break
 
-	print("SUCCESS!!!!!")
-	print("Robot Position    is: X:",round(x0,3),"m ,    Y:",round(y0,3),"m ,      Z:",round(z0,3),"m")
-	print("Robot Orientation is: ω:",round(r2d(omega),3),"degrees ,φ:",round(r2d(phi),3),"degrees ,κ:",round(r2d(kappa),3),"degrees")	
+	O = (x0*1000,y0*1000,z0*1000)
+	res = check_distance(a,b,A,B,O,2325,1736,3623)
+	return x0,y0,z0,round(res*0.001,3)
+
+
 
 
 if __name__ == '__main__':
@@ -190,4 +211,12 @@ if __name__ == '__main__':
 	# DOORS 8-9
 	xy = [(1324, 926), (1989, 950), (2585, 972), (1328, 1601), (1981, 1622), (2573, 1641), (1329, 2383), (1972, 2384), (2561, 2399)]
 	XYZ = [(20550, 480, 2140), (20550, 1400, 2140), (20550, 2320, 2140), (20550, 480, 1070), (20550, 1400, 1070), (20550, 2320, 1070), (20550, 480, 0), (20550, 1400, 0), (20550, 2320, 0)]
-	position_estimation(XYZ,xy)
+	# position_estimation(XYZ,xy)
+	x0,y0,f = 2325,1736,3623
+	x0,y0,z0,res = position_estimation(XYZ,xy)
+	print("SUCCESS!!!!!")
+	print("Robot Position    is: X:",round(x0,3),"m , Y:",round(y0,3),"m , Z:",round(z0,3),"m")
+	print("Residual =",res)
+	# print("Robot Orientation is: ω:",round(r2d(omega),3),"degrees ,φ:",round(r2d(phi),3),"degrees ,κ:",round(r2d(kappa),3),"degrees")	
+	# O  = [int(x*1000) for x in O]
+	# check_distance(XYZ,xy,O,x0,y0,f)

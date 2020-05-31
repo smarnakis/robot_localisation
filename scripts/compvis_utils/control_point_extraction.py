@@ -71,7 +71,7 @@ def Homography(kp1,des1,kp2,des2):
 			good.append(m)
 
 		
-	print("Good matches detected: {}".format(len(good)))
+	# print("Good matches detected: {}".format(len(good)))
 	if len(good) > 0:
 		# Homografy creation with RANSAC filtering
 		src_pts = np.float32([ kp1[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
@@ -81,14 +81,14 @@ def Homography(kp1,des1,kp2,des2):
 		sumx = 0
 		for x in matchesMask:
 			sumx +=  x
-		print("Final matches after RANSAC: {}".format(sumx))
+		# print("Final matches after RANSAC: {}".format(sumx))
 		return M,matchesMask,good
 	else:
 		return [],[],[]
 
 def find_best_homography(ref_paths,test):
-	MIN_MATCH_COUNT = 30
-	MIN_FILTERED = 10
+	MIN_MATCH_COUNT = 28
+	MIN_FILTERED = 8
 
 	num_good = 0
 	num_matches = 0
@@ -129,8 +129,8 @@ def find_best_homo_pair(REF_PATHS,img2):
 	#					img2: the test image block in np.array format [width,length,channels(BGR)]
 	# OUTPUS: BEST_REF_PATH: the path to the best reference image
 	#					best_M: The homography matrix between the test image block and the best ref image
-	MIN_MATCH_COUNT = 30
-	MIN_FILTERED = 10
+	MIN_MATCH_COUNT = 29
+	MIN_FILTERED = 9
 
 	num_good = 0
 	num_matches = 0
@@ -140,7 +140,7 @@ def find_best_homo_pair(REF_PATHS,img2):
 
 	kp2,des2 = sift(img2)	
 	for REF_PATH in REF_PATHS:
-		print(REF_PATH)
+		# print(REF_PATH)
 		img1 = cv.imread(REF_PATH,cv.COLOR_BGR2GRAY)
 		kp1,des1 = sift(img1)
 		
@@ -155,7 +155,7 @@ def find_best_homo_pair(REF_PATHS,img2):
 			num_matches = sumx
 			best_M = M
 			BEST_REF_PATH = REF_PATH
-	print("The best ref is: " + BEST_REF_PATH)
+	# print("The best ref is: " + BEST_REF_PATH)
 	return BEST_REF_PATH,best_M
 
 def sift(img):
@@ -186,14 +186,14 @@ def bring_ref_CPTS(tags):
 			data.append(())
 			i += 1
 		line = line.split(" | ")
-		print(line[0],tags[i])
+		# print(line[0],tags[i])
 		if tags[i] == line[0]:
 			i += 1
-			print(i)
+			# print(i)
 			data.append((line[0],ast.literal_eval(line[1]),ast.literal_eval(line[2])))
 		if tags[i-1] == last_tag and i!=0:
 			break
-	print(data)
+	# print(data)
 	f.close()
 	return data
 
@@ -312,23 +312,23 @@ def draw_sift_matching(img1,img2,pts=[],M=[],matchesMask=[],good=[]):
 
 ##### MAIN TESTING FUNCTIONS ######
 def main1():
-	ymin = 0.33355704
-	xmin = 0.72840554
-	TEST_IMAGE_PATHS = '../../images/detected_doors/DOOR8.jpg'
-	PATH_TO_REF_IMAGES_DIR = "../../images/reference/DOOR8"
-	TEST_IMAGE_PATH = '../../images/test/TEST1.jpg'
+	# ymin = 0.33355704
+	# xmin = 0.72840554
+	TEST_IMAGE_PATHS = '../../images/detected_doors/DOOR6.jpg'
+	PATH_TO_REF_IMAGES_DIR = "../../images/reference/DOOR6"
+	TEST_IMAGE_PATH = '../../images/test/TEST7.jpg'
 	test_img = cv.imread(TEST_IMAGE_PATH,cv.COLOR_BGR2GRAY)
 	length,width,channels = test_img.shape
 	REF_IMAGE_PATHS = [os.path.join(PATH_TO_REF_IMAGES_DIR,im) for im in os.listdir(PATH_TO_REF_IMAGES_DIR)]
 	ref_image_path,M,matchesMask,good = find_best_homography(REF_IMAGE_PATHS,TEST_IMAGE_PATHS)
-	dst = draw_sift_matching(ref_image_path,TEST_IMAGE_PATHS,M,matchesMask,good)
+	dst = draw_sift_matching(ref_image_path,TEST_IMAGE_PATHS,M=M,matchesMask=matchesMask,good=good)
 	# print(dst)
 	# print(ymin*length)
 	# print(xmin*width)
-	for CPT in dst:
-		CPT[0][0] = int(CPT[0][0] + xmin*width)
-		CPT[0][1] = int(CPT[0][1] + ymin*length)
-	draw_CPTs(TEST_IMAGE_PATH,dst,COLOURs[0])
+	# for CPT in dst:
+	# 	CPT[0][0] = int(CPT[0][0] + xmin*width)
+	# 	CPT[0][1] = int(CPT[0][1] + ymin*length)
+	draw_CPTs(TEST_IMAGE_PATHS,dst,COLOURs[0])
 
 def main2():
 	TEST_IMAGE_PATH = '../../images/detected_doors/DOOR3.jpg'
@@ -367,8 +367,8 @@ def algorithm1(test_image_blocks):
 		ref_image_path,best_M = find_best_homo_pair(REF_IMAGE_PATHS,test_img_block)
 		Ms.append(best_M)
 		if best_M != []:
-			print("ALGO1")
-			print(best_M)
+			# print("ALGO1")
+			# print(best_M)
 			tags.append(ref_image_path.split('/')[-1])
 			# draw_sift_matching(ref_image_path,draw_tag)
 		else:
@@ -380,12 +380,12 @@ def algorithm1(test_image_blocks):
 	space_coordinates = []
 	for block in space_coords:
 		space_coordinates = space_coordinates + block
-	print("XYZ=")
-	print(space_coordinates)
+	# print("XYZ=")
+	# print(space_coordinates)
 	test_CPTS,test_CPTS_vis = abs_test_CPTS(relative_test_CPTS,origins)
-	print("xy=")
-	print(test_CPTS)
-	# draw_test_CPTS(TEST_IMAGE_PATH,test_CPTS_vis)
+	# print("xy=")
+	# print(test_CPTS)
+	draw_test_CPTS(TEST_IMAGE_PATH,test_CPTS_vis)
 	return space_coordinates,test_CPTS
 
 
@@ -394,7 +394,7 @@ if __name__ == '__main__':
 	# bring_ref_CPTS(tags)
 	im_path = "../../images/vis_utils_test/test.jpg"
 	# crop_pil(im_path)
-	#main2()
+	main1()
 	# PATH_TO_TEST_IMAGE = '../../images/test'
 	# TEST_IMAGE_PATH = os.path.join(PATH_TO_TEST_IMAGE,os.listdir(PATH_TO_TEST_IMAGE)[0])
 	# print(TEST_IMAGE_PATH)
