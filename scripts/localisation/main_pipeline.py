@@ -147,6 +147,7 @@ def main():
 
 	print("# 2nd stage ignition: Control Point Extraction  #")
 	print("# Calculating...")
+	save_image_parts(image_blocks)
 	XYZ,xy = algorithm1(image_blocks)
 	print("# The following Control Points were gathered:")
 	print("#")
@@ -169,7 +170,6 @@ def main():
 	print("# Residual =",res,"m")
 	print("#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#")
 	print("#-------------------------------------------------#")
-	# save_image_parts(image_blocks)
 
 
 

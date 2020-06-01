@@ -71,7 +71,7 @@ def Homography(kp1,des1,kp2,des2):
 			good.append(m)
 
 		
-	# print("Good matches detected: {}".format(len(good)))
+	print("Good matches detected: {}".format(len(good)))
 	if len(good) > 0:
 		# Homografy creation with RANSAC filtering
 		src_pts = np.float32([ kp1[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
@@ -81,7 +81,7 @@ def Homography(kp1,des1,kp2,des2):
 		sumx = 0
 		for x in matchesMask:
 			sumx +=  x
-		# print("Final matches after RANSAC: {}".format(sumx))
+		print("Final matches after RANSAC: {}".format(sumx))
 		return M,matchesMask,good
 	else:
 		return [],[],[]
@@ -140,7 +140,7 @@ def find_best_homo_pair(REF_PATHS,img2):
 
 	kp2,des2 = sift(img2)	
 	for REF_PATH in REF_PATHS:
-		# print(REF_PATH)
+		print(REF_PATH)
 		img1 = cv.imread(REF_PATH,cv.COLOR_BGR2GRAY)
 		kp1,des1 = sift(img1)
 		
@@ -155,7 +155,7 @@ def find_best_homo_pair(REF_PATHS,img2):
 			num_matches = sumx
 			best_M = M
 			BEST_REF_PATH = REF_PATH
-	# print("The best ref is: " + BEST_REF_PATH)
+	print("The best ref is: " + BEST_REF_PATH)
 	return BEST_REF_PATH,best_M
 
 def sift(img):
@@ -314,11 +314,11 @@ def draw_sift_matching(img1,img2,pts=[],M=[],matchesMask=[],good=[]):
 def main1():
 	# ymin = 0.33355704
 	# xmin = 0.72840554
-	TEST_IMAGE_PATHS = '../../images/detected_doors/DOOR6.jpg'
-	PATH_TO_REF_IMAGES_DIR = "../../images/reference/DOOR6"
+	TEST_IMAGE_PATHS = '../../images/detected_doors/DOOR1.jpg'
+	PATH_TO_REF_IMAGES_DIR = "../../images/reference/DOOR1"
 	TEST_IMAGE_PATH = '../../images/test/TEST7.jpg'
 	test_img = cv.imread(TEST_IMAGE_PATH,cv.COLOR_BGR2GRAY)
-	length,width,channels = test_img.shape
+	# length,width,channels = test_img.shape
 	REF_IMAGE_PATHS = [os.path.join(PATH_TO_REF_IMAGES_DIR,im) for im in os.listdir(PATH_TO_REF_IMAGES_DIR)]
 	ref_image_path,M,matchesMask,good = find_best_homography(REF_IMAGE_PATHS,TEST_IMAGE_PATHS)
 	dst = draw_sift_matching(ref_image_path,TEST_IMAGE_PATHS,M=M,matchesMask=matchesMask,good=good)
@@ -332,10 +332,10 @@ def main1():
 
 def main2():
 	TEST_IMAGE_PATH = '../../images/detected_doors/DOOR3.jpg'
-	REF_IMAGE_PATH = "../../images/reference/DOOR3/DOOR3.1.jpg"
-	CPTs = [(30,270),(600,270),(30,880),(600,880),(50,1490),(580,1480),(750,730),(750,870)]
-	# draw_CPTs(REF_IMAGE_PATH,CPTs,COLOURs[0])
-	# draw_sift_matching(REF_IMAGE_PATH,TEST_IMAGE_PATH,CPTs)
+	REF_IMAGE_PATH = "../../images/reference/DOOR3/DOOR3.3.jpg"
+	CPTs = [(280,380),(700,380),(290,815),(700,815),(300,1250),(700,1250)] 
+	draw_CPTs(REF_IMAGE_PATH,CPTs,COLOURs[0])
+	draw_sift_matching(REF_IMAGE_PATH,TEST_IMAGE_PATH,CPTs)
 
 
 def main3():
@@ -394,7 +394,7 @@ if __name__ == '__main__':
 	# bring_ref_CPTS(tags)
 	im_path = "../../images/vis_utils_test/test.jpg"
 	# crop_pil(im_path)
-	main1()
+	main2()
 	# PATH_TO_TEST_IMAGE = '../../images/test'
 	# TEST_IMAGE_PATH = os.path.join(PATH_TO_TEST_IMAGE,os.listdir(PATH_TO_TEST_IMAGE)[0])
 	# print(TEST_IMAGE_PATH)
