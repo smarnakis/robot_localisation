@@ -8,7 +8,7 @@ import cv2 as cv
 
 sys.path.append('..')
 from detection.door_detection import find_test_doors
-from compvis_utils.control_point_extraction import algorithm1
+from compvis_utils.control_point_extraction import algorithm1,testing_function
 from compvis_utils.space_resection import position_estimation
 matplotlib.use('TkAgg')
 
@@ -36,7 +36,7 @@ def exclude_missdetections(boxes,scores,classes,num_detections):
 	num_detected = len(classes)
 	important_blocks = []
 	tmp_blocks = []
-
+	tags = [1,1,1,1,1,1,1,1,1]
 	# Append blocks of each category with best score
 	for i in range(num_detected):
 		if blocks[classes[i]-1] == ():
@@ -44,24 +44,42 @@ def exclude_missdetections(boxes,scores,classes,num_detections):
 		elif scores[i] > blocks[classes[i]-1][1]:
 			blocks[classes[i]-1] = (boxes[i],scores[i],classes[i])
 	
-	# Keep only blocks with score > 0.4
-	for block in blocks:
-		# print(block)
-		if block[1] > 0.6:
-			# tmp_blocks.append(block)
-			important_blocks.append(block)
-
-	# Exclude incompatible blocks with the rest
-	# case = 1
-	# for block in tmp_blocks:
-	# 	if block[2] <= 4:
-	# 		case = 0
-	# 		important_blocks.append(block)
-	# 	elif block[2] == 5:
-	# 		if block[1] > 0.9:
-	# 			important_blocks.append(block)
-	# 	elif case:
-	# 		important_blocks.append(block)
+	# Keep only blocks with score > 0.6
+	for i,block in enumerate(blocks):
+		if block[1] < 0.6:
+			if block[2] == 1:
+				tags[0] = 0
+			if block[2] == 2:
+				tags[1] = 0
+			if block[2] == 3:
+				tags[2] = 0
+			if block[2] == 4:
+				tags[3] = 0
+			if block[2] == 5:
+				tags[4] = 0
+			if block[2] == 6:
+				tags[5] = 0
+			if block[2] == 7:
+				tags[6] = 0
+			if block[2] == 8:
+				tags[7] = 0
+			if block[2] == 9:
+				tags[8] = 0
+	# print(blocks)
+	for i in range(9):
+		if tags[i] == 1:
+			if i == 3:
+				if tags[8] == 0 or blocks[i][1] > blocks[8][1]:
+					important_blocks.append(blocks[i])
+			elif i == 4:
+				if tags[8] == 0 or blocks[i][1] > blocks[8][1]:
+					important_blocks.append(blocks[i])
+			elif i == 5:
+				if tags[8] == 1 and tags[6] == 0:
+					important_blocks.append((blocks[i][0],blocks[i][1],7))
+			else:
+				important_blocks.append(blocks[i])
+	# print(important_blocks)
 
 	return important_blocks
 
@@ -168,6 +186,7 @@ def main():
 	print("# Calculating...")	
 	important_blocks = exclude_missdetections(boxes,scores,classes,num_detections)
 	image = cv.imread(TEST_IMAGE_PATHS[0],cv.COLOR_BGR2GRAY)
+	print("TEST IMAGE TYPE:",image.dtype)
 	image_blocks = seperate_blocks(image,important_blocks)
 	print(image_blocks)
 	print("# First stage completed!")
@@ -179,6 +198,7 @@ def main():
 	print("# Calculating...")
 	save_image_parts(image_blocks,"cv")
 	XYZ,xy = algorithm1(image_blocks)
+	# testing_function(image_blocks)
 	print("# The following Control Points were gathered:")
 	print("#")
 	print("# Space coordinates (mm):")
