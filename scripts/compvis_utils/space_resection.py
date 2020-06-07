@@ -155,6 +155,14 @@ def pre_processing(XYZ,xy):
 
 	return XYZ,xy,f
 
+def exclude_negatives(XYZ_raw,xy_raw):
+	xy,XYZ = [],[]
+	for i in range(len(xy_raw)):
+		if xy_raw[i][0] > 0 and xy_raw[i][1] > 0:
+			xy.append(xy_raw[i])
+			XYZ.append(XYZ_raw[i])
+	return XYZ,xy
+
 def check_distance(a,b,A,B,O,x0,y0,f):
 	o = (x0,y0)
 	g = ((b[0]-a[0])/2 + a[0],(b[1]-a[1])/2 + a[1])
@@ -170,7 +178,8 @@ def check_distance(a,b,A,B,O,x0,y0,f):
 	# print("res:",gamma*0.001)
 	return res
 
-def position_estimation(XYZ,xy):
+def position_estimation(XYZ_raw,xy_raw):
+	XYZ,xy = exclude_negatives(XYZ_raw,xy_raw)
 	A = XYZ[0]
 	B = XYZ[5]
 	a = xy[0]
@@ -181,7 +190,7 @@ def position_estimation(XYZ,xy):
 		for phi_init in range(-80,80,10):
 			eop = [round(d2r(omega_init),5),round(d2r(phi_init),5),round(d2r(0),5),0.0,0.05,0.1]
 			omega,phi,kappa,x0,y0,z0 = space_resection(XYZ,xy,eop,f)
-			if x0 < 21.0 and x0 > -1.0 and y0 < 4 and y0 > -1.0 and z0 > 0.0:
+			if x0 < 21.0 and x0 > -1.0 and y0 < 4 and y0 > 0.0 and z0 > 0.0:
 				# print(omega_in,phi_in)
 				stop = 1
 				break

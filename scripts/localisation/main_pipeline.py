@@ -4,13 +4,13 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import numpy as np
 import os
+import cv2 as cv
 
 sys.path.append('..')
 from detection.door_detection import find_test_doors
 from compvis_utils.control_point_extraction import algorithm1
 from compvis_utils.space_resection import position_estimation
 matplotlib.use('TkAgg')
-
 
 
 def get_ref_test_image_path():
@@ -47,24 +47,25 @@ def exclude_missdetections(boxes,scores,classes,num_detections):
 	# Keep only blocks with score > 0.4
 	for block in blocks:
 		# print(block)
-		if block[1] > 0.4:
-			tmp_blocks.append(block)
+		if block[1] > 0.6:
+			# tmp_blocks.append(block)
+			important_blocks.append(block)
 
 	# Exclude incompatible blocks with the rest
-	case = 1
-	for block in tmp_blocks:
-		if block[2] <= 4:
-			case = 0
-			important_blocks.append(block)
-		elif block[2] == 5:
-			if block[1] > 0.9:
-				important_blocks.append(block)
-		elif case:
-			important_blocks.append(block)
+	# case = 1
+	# for block in tmp_blocks:
+	# 	if block[2] <= 4:
+	# 		case = 0
+	# 		important_blocks.append(block)
+	# 	elif block[2] == 5:
+	# 		if block[1] > 0.9:
+	# 			important_blocks.append(block)
+	# 	elif case:
+	# 		important_blocks.append(block)
 
 	return important_blocks
 
-def chop_block(or_image,block_bounds):
+def chop_block_PIL(or_image,block_bounds):
 	# Usage: Crops an image to seperate image blocks
 	# Inputs: 1) Original image in np.array format (width,length,channels) RGB
 	# 				2) Image block boundaries in image size percentages
@@ -73,26 +74,53 @@ def chop_block(or_image,block_bounds):
 	# 				2) Upper-left pixel coords of cropped image in original
 	image_pil = Image.fromarray(or_image)
 	im_width,im_height = image_pil.size
+	print("PIL WIDTH:",im_width)
 	ymin = block_bounds[0]
 	xmin = block_bounds[1]
 	ymax = block_bounds[2]	
 	xmax = block_bounds[3]	
 	left, bottom, right, top = xmin * im_width, ymax * im_height, xmax * im_width, ymin * im_height
-	
+	print("PIL BOUNDS: l,b,r,t =",left, bottom, right, top)
 	chopped_pil = image_pil.crop((int(left), int(top), int(right), int(bottom)))
 	cropped_im = load_image_into_numpy_array(chopped_pil)
 	origin = (left,top)
 	
 	return cropped_im[:,:,::-1],origin
 
+def chop_block_CV(or_image,block_bounds):
+	# Usage: Crops an image to seperate image blocks (OPENCV)
+	# Inputs: 1) Original image in np.array format (length,width,channels) BGR
+	# 				2) Image block boundaries in image size percentages
+	#	
+	# Outputs:1) Cropped image np.array format (length,width,channels) BGR
+	# 				2) Upper-left pixel coords of cropped image in original
+	im_height,im_width,channels = or_image.shape
+	ymin = block_bounds[0]
+	xmin = block_bounds[1]
+	ymax = block_bounds[2]	
+	xmax = block_bounds[3]	
+	left, bottom, right, top = int(xmin * im_width), int(ymax * im_height), int(xmax * im_width), int(ymin * im_height)
+	cropped_im = or_image[top:bottom,left:right,:]
+	# plt.imshow(cropped_im[:,:,::-1]),plt.show()
+	origin = (left,top)
+	print(origin)
+	return cropped_im,origin
 
-def save_image_parts(image_blocks):
 
-	for block in image_blocks:
-		tmp_pil = Image.fromarray(block[0][:,:,::-1])
-		tmp_label = block[2]
-		image_name = 'DOOR' + str(tmp_label) + '.jpg'
-		tmp_pil.save('../../images/detected_doors/'+image_name)
+def save_image_parts(image_blocks,method):
+	if method == "pil":
+		for block in image_blocks:
+			tmp_pil = Image.fromarray(block[0][:,:,::-1])
+			tmp_label = block[2]
+			image_name = 'DOOR' + str(tmp_label) + '.jpg'
+			tmp_pil.save('../../images/detected_doors/'+image_name)
+	else:
+		for block in image_blocks:
+			img = block[0]
+			tmp_label = block[2]
+			image_name = 'DOOR' + str(tmp_label) + '.jpg'
+			cv.imwrite('../../images/detected_doors/'+image_name,img)
+
 
 
 
@@ -104,7 +132,7 @@ def seperate_blocks(or_image,imp_bl):
 		# print('DOOR')
 		# print(block[2])
 		# print(block[1])
-		cropped_im,origin = chop_block(or_image,block[0])
+		cropped_im,origin = chop_block_CV(or_image,block[0])
 		image_blocks.append((cropped_im,origin,block[2]))
 	return image_blocks
 
@@ -129,17 +157,19 @@ def match_with_reference(image_blocks,PATH_TO_REF_IMAGES_DIR):
 def main():
 	# Bring test image and image blocks
 	PATH_TO_REF_IMAGES_DIR,PATH_TO_TEST_IMAGES_DIR = get_ref_test_image_path()
-	
+	TEST_IMAGE_PATHS = [os.path.join(PATH_TO_TEST_IMAGES_DIR,im) for im in os.listdir(PATH_TO_TEST_IMAGES_DIR)]
 	print("#------------------------------------------------#")
 	print("#~~~~~~~~~~Robot localisation algorithm!~~~~~~~~~#")
 	print()
 	print("--------------------TENSORFOW WARN ---------------------------------")
-	image,boxes,scores,classes,num_detections = find_test_doors(PATH_TO_TEST_IMAGES_DIR)
+	_,boxes,scores,classes,num_detections = find_test_doors(PATH_TO_TEST_IMAGES_DIR)
 	print("--------------------------------------------------------------------")
 	print("# 1st stage ignition: Static Object Detection  #")
 	print("# Calculating...")	
 	important_blocks = exclude_missdetections(boxes,scores,classes,num_detections)
+	image = cv.imread(TEST_IMAGE_PATHS[0],cv.COLOR_BGR2GRAY)
 	image_blocks = seperate_blocks(image,important_blocks)
+	print(image_blocks)
 	print("# First stage completed!")
 	print("# Doors detected:")
 	for block in image_blocks:
@@ -147,20 +177,15 @@ def main():
 
 	print("# 2nd stage ignition: Control Point Extraction  #")
 	print("# Calculating...")
-	save_image_parts(image_blocks)
+	save_image_parts(image_blocks,"cv")
 	XYZ,xy = algorithm1(image_blocks)
 	print("# The following Control Points were gathered:")
 	print("#")
 	print("# Space coordinates (mm):")
-
 	print("#",XYZ)
-	# for CPT in XYZ:
-	# 	print("#",CPT)
 	print("#")
-	print("# Space coordinates (pixels):")
+	print("# Picture coordinates (pixels):")
 	print("#",xy)
-	# for CPT in xy:
-	# 	print("#",CPT)
 	print("#")
 	print("# 3rd stage ignition: Position Estimation  #")
 	print("# Calculating...")
@@ -172,7 +197,14 @@ def main():
 	print("#-------------------------------------------------#")
 
 
+def check_crop():
+	important_blocks = [(np.array([0.44808996, 0.13009809, 0.60111403, 0.22902723]), 0.99061674, 4)]
+	PATH_TO_REF_IMAGES_DIR,PATH_TO_TEST_IMAGES_DIR = get_ref_test_image_path()
+	TEST_IMAGE_PATHS = [os.path.join(PATH_TO_TEST_IMAGES_DIR,im) for im in os.listdir(PATH_TO_TEST_IMAGES_DIR)]
+	image = cv.imread(TEST_IMAGE_PATHS[0],cv.COLOR_BGR2GRAY)
+	image_blocks = seperate_blocks(image,important_blocks)
 
 
 if __name__ == '__main__':
 	main()
+	# check_crop()
