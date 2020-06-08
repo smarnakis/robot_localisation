@@ -18,7 +18,7 @@ from IPython.display import display
 import ast
 import cv2 as cv
 # matplotlib.use('TkAgg')
-
+# from test import examine_sift_error
 
 COLOURs = [(0,0,100),(0,100,0),(0,100,100),(100,0,0),
 						(100,0,100),(100,100,0),(100,50,100),
@@ -87,7 +87,7 @@ def Homography(kp1,des1,kp2,des2):
 		return [],[],[]
 
 def find_best_homography(ref_paths,test):
-	MIN_MATCH_COUNT = 29
+	MIN_MATCH_COUNT = 27
 	MIN_FILTERED = 9
 
 	num_good = 0
@@ -185,17 +185,20 @@ def bring_ref_CPTS(tags):
 	last_tag = tags[-1]
 	for line in lines:
 		while(tags[i]==""):
-			# print("i=",i)
+			print("i=",i)
 			data.append(())
 			if i < len(tags)-1:
 				i += 1
 			else:
+				i += 1
 				break
+		if i == len(tags):
+			break
 		line = line.split(" | ")
 		# print(line[0],tags[i])
 		if tags[i] == line[0]:
 			i += 1
-			# print(i)
+			print(i)
 			data.append((line[0],ast.literal_eval(line[1]),ast.literal_eval(line[2])))
 		if tags[i-1] == last_tag and i!=0:
 			break
@@ -338,8 +341,8 @@ def check_homography():
 
 def check_CPTS():
 	TEST_IMAGE_PATH = '../../images/detected_doors/DOOR6.jpg'
-	REF_IMAGE_PATH = "../../images/reference/DOOR9/DOOR9.jpg"
-	CPTs = [(20,30),(440,30),(840,30),(45,470),(440,470),(830,470),(60,950),(440,950),(830,950)] 
+	REF_IMAGE_PATH = "../../images/reference/DOOR4/DOOR4.4.jpg"
+	CPTs = [(90,100),(500,80),(1000,70),(85,610),(490,625),(985,630),(80,1120),(495,1160),(970,1200)] 
 	draw_CPTs(REF_IMAGE_PATH,CPTs,COLOURs[0])
 	draw_sift_matching(REF_IMAGE_PATH,TEST_IMAGE_PATH,CPTs)
 
@@ -368,9 +371,9 @@ def algorithm1(test_image_blocks):
 		PATH_TO_REF_IMAGES_DIR = "../../images/reference/DOOR" + str(block[2])
 		draw_tag = "../../images/detected_doors/DOOR" + str(block[2]) + ".jpg"
 		# LOAD TEST IMG BLOCK
-		# test_img_block1 = cv.imread(draw_tag,cv.COLOR_BGR2GRAY)
+		test_img_block = cv.imread(draw_tag,cv.COLOR_BGR2GRAY)
 		REF_IMAGE_PATHS = [os.path.join(PATH_TO_REF_IMAGES_DIR,im) for im in os.listdir(PATH_TO_REF_IMAGES_DIR)]
-		test_img_block = block[0]
+		# test_img_block = block[0]
 		origins.append(block[1])
 		ref_image_path,best_M = find_best_homo_pair(REF_IMAGE_PATHS,test_img_block)
 		Ms.append(best_M)
@@ -378,7 +381,8 @@ def algorithm1(test_image_blocks):
 			# print("ALGO1")
 			# print(best_M)
 			tags.append(ref_image_path.split('/')[-1])
-			# draw_sift_matching(ref_image_path,draw_tag)
+			pts = [(100,200),(540,200),(1010,200),(100,715),(540,715),(1000,715),(100,1260),(540,1260),(1000,1260)]
+			draw_sift_matching(ref_image_path,block[0],pts)
 		else:
 			tags.append("")
 
@@ -417,8 +421,22 @@ def testing_function(test_image_blocks):
 		draw_sift_matching(ref_image_path,test_img_block1)
 		draw_sift_matching(ref_image_path,test_img_block)
 
+def test_cropped_images():
+	test_cropped,origin = examine_sift_error()
+	PATH_TO_REF_IMAGES_DIR = "../../images/reference/DOOR4/DOOR4.4.jpg"
+
+	draw_tag = "../../images/detected_doors/DOOR4.jpg"
+	read_cropped = cv.imread(draw_tag,cv.COLOR_BGR2GRAY)
+	draw_sift_matching(PATH_TO_REF_IMAGES_DIR,test_cropped)
+	draw_sift_matching(PATH_TO_REF_IMAGES_DIR,read_cropped)
+	draw_sift_matching(read_cropped,test_cropped)
+
+
+
+
 if __name__ == '__main__':
 	# check_homography()
-	check_CPTS()
-	tags = ['DOOR6.4.jpg', '', '']
+	# check_CPTS()
+	tags = ['DOOR7.3.jpg', '']
+	test_cropped_images()
 	# bring_ref_CPTS(tags)

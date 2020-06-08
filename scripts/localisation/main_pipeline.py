@@ -65,7 +65,7 @@ def exclude_missdetections(boxes,scores,classes,num_detections):
 				tags[7] = 0
 			if block[2] == 9:
 				tags[8] = 0
-	# print(blocks)
+	print(blocks)
 	for i in range(9):
 		if tags[i] == 1:
 			if i == 3:
@@ -75,7 +75,12 @@ def exclude_missdetections(boxes,scores,classes,num_detections):
 				if tags[8] == 0 or blocks[i][1] > blocks[8][1]:
 					important_blocks.append(blocks[i])
 			elif i == 5:
-				if tags[8] == 1 and tags[6] == 0:
+				if tags[8] == 1 and tags[6] == 1:
+					important_blocks.append((blocks[i][0],blocks[i][1],6))
+				elif tags[8] == 1 and tags[6] == 0:
+					# important_blocks.append((blocks[i][0],blocks[i][1],7))
+					print("do nothing")
+				else:
 					important_blocks.append((blocks[i][0],blocks[i][1],7))
 			else:
 				important_blocks.append(blocks[i])
@@ -188,7 +193,6 @@ def main():
 	image = cv.imread(TEST_IMAGE_PATHS[0],cv.COLOR_BGR2GRAY)
 	print("TEST IMAGE TYPE:",image.dtype)
 	image_blocks = seperate_blocks(image,important_blocks)
-	print(image_blocks)
 	print("# First stage completed!")
 	print("# Doors detected:")
 	for block in image_blocks:
@@ -202,10 +206,10 @@ def main():
 	print("# The following Control Points were gathered:")
 	print("#")
 	print("# Space coordinates (mm):")
-	print("#",XYZ)
+	print("# XYZ =",XYZ)
 	print("#")
 	print("# Picture coordinates (pixels):")
-	print("#",xy)
+	print("# xy =",xy)
 	print("#")
 	print("# 3rd stage ignition: Position Estimation  #")
 	print("# Calculating...")
