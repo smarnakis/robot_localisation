@@ -341,8 +341,8 @@ def check_homography():
 
 def check_CPTS():
 	TEST_IMAGE_PATH = '../../images/detected_doors/DOOR6.jpg'
-	REF_IMAGE_PATH = "../../images/reference/DOOR4/DOOR4.4.jpg"
-	CPTs = [(90,100),(500,80),(1000,70),(85,610),(490,625),(985,630),(80,1120),(495,1160),(970,1200)] 
+	REF_IMAGE_PATH = "../../images/reference/DOOR3/DOOR3.2.jpg"
+	CPTs = [(380,290),(650,140),(375,685),(640,690),(370,1080),(640,1250)]
 	draw_CPTs(REF_IMAGE_PATH,CPTs,COLOURs[0])
 	draw_sift_matching(REF_IMAGE_PATH,TEST_IMAGE_PATH,CPTs)
 
@@ -436,7 +436,7 @@ def test_cropped_images():
 
 if __name__ == '__main__':
 	# check_homography()
-	# check_CPTS()
+	check_CPTS()
 	tags = ['DOOR7.3.jpg', '']
-	test_cropped_images()
+	# test_cropped_images()
 	# bring_ref_CPTS(tags)

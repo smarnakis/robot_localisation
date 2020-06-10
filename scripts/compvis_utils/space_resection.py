@@ -24,6 +24,14 @@ import yaml
 import time
 pi = 3.1416
 
+def mod(D,d):
+	if D > 0:
+		res = D % d
+	else:
+		res = -((-D) % d)
+	return res
+
+
 def d2r(alpha):
 	theta = (pi/180)*alpha
 	return theta
@@ -179,7 +187,9 @@ def check_distance(a,b,A,B,O,x0,y0,f):
 	return res
 
 def position_estimation(XYZ_raw,xy_raw):
+	# print(XYZ_raw)
 	XYZ,xy = exclude_negatives(XYZ_raw,xy_raw)
+	# print(XYZ)
 	A = XYZ[0]
 	B = XYZ[5]
 	a = xy[0]
@@ -188,26 +198,37 @@ def position_estimation(XYZ_raw,xy_raw):
 	stop = 0
 	for omega_init in range(-170,170,20):
 		for phi_init in range(-80,80,10):
-			eop = [round(d2r(omega_init),5),round(d2r(phi_init),5),round(d2r(0),5),0.0,0.05,0.1]
+			eop = [round(d2r(omega_init),5),round(d2r(phi_init),5),round(d2r(0),5),1.0,1.05,0.1]
 			omega,phi,kappa,x0,y0,z0 = space_resection(XYZ,xy,eop,f)
 			# print("_____________________________________")
 			# print("For initial omega:{} phi: {} kappa:{}".format(omega_init,phi_init,0))
 			# print("RESULTS: x0: {}, y0: {}, z0: {} ".format(x0,y0,z0))
 			# print("_____________________________________")
+			omega = mod(r2d(omega),180)
+			phi = mod(r2d(phi),90)
+			kappa = mod(r2d(kappa),180)
+			# print(omega,phi,kappa)
 			print("omi:{}|phii:{}".format(omega_init,phi_init))
 			print("x0:{}|y0:{}|z0:{}".format(x0,y0,z0))
+			print("omega:{}|phi:{}|kappa:{}".format(omega,phi,kappa))
 			if x0 < 21.0 and x0 > -1.0 and y0 < 4 and y0 > 0.0 and z0 > 0.0:
-				# print(omega_in,phi_in)
 				stop = 1
-				break
+				# break
+			elif x0 < 21.0 and x0 > 11.0 and y0 < 3 and y0 > 0.0 and z0 > 0.0:
+				stop = 1
+				# break
 		if stop:
 			o = 1
 			# print()
-			break
+			# break
 
 	O = (x0*1000,y0*1000,z0*1000)
-	res = check_distance(a,b,A,B,O,2325,1736,3623)
-	return x0,y0,z0,round(res*0.001,3)
+	# res = check_distance(a,b,A,B,O,2325,1736,3623)
+	# omega = mod(r2d(omega),180)
+	# phi = mod(r2d(phi),90)
+	# kappa = mod(r2d(kappa),180)
+
+	return omega,phi,kappa,x0,y0,z0
 
 
 
@@ -237,12 +258,15 @@ if __name__ == '__main__':
 	xy = [(2859, 971), (3441, 947), (4228, 915), (2817, 1662), (3391, 1715), (4148, 1786), (2773, 2385), (3339, 2519), (4083, 2696), (592, 488), (2118, 800), (560, 1719), (2082, 1679), (525, 3023), (2049, 2498)]
 	XYZ = [(0, 130, 2170), (0, 1050, 2170), (0, 1970, 2170), (0, 130, 1085), (0, 1050, 1085), (0, 1970, 1085), (0, 130, 0), (0, 1050, 0), (0, 1970, 0), (3300, 0, 2140), (1550, 0, 2140), (3300, 0, 1070), (1550, 0, 1070), (3300, 0, 1070), (1550, 0, 1070)]
 
-	XYZ = [(9250, 0, 2170), (8250, 0, 2170), (9250, 0, 1085), (8250, 0, 1085), (9250, 0, 0), (8250, 0, 0), (2425, 0, 2140), (1550, 0, 2140), (2425, 0, 0), (1550, 0, 0)]
-	xy = [(99, 70), (1248, 457), (110, 1834), (1244, 1826), (120, 3617), (1239, 3205), (4169, 1363), (4316, 1441), (4173, 2271), (4325, 2166)]
+	
+	XYZ = [(9250, 0, 2170), (8250, 0, 2170), (9250, 0, 1085), (8250, 0, 1085), (9250, 0, 0), (8250, 0, 0)]
+	xy = [(3063, 776), (3850, 482), (3087, 1819), (3897, 1750), (3087, 2979), (3950, 3185)]
 	x0,y0,f = 2325,1736,3623
-	x0,y0,z0,res = position_estimation(XYZ,xy)
+	omega,phi,kappa,x0,y0,z0 = position_estimation(XYZ,xy)
 	# print("SUCCESS!!!!!")
 	# print("Robot Position    is: X:",round(x0,3),"m , Y:",round(y0,3),"m , Z:",round(z0,3),"m")
+	# print("# Robot orientation is: omega:",round(omega,3),"deg , phi:",round(phi,3),"deg , kappa:",round(kappa,3),"deg")
+
 	# print("Residual =",res)
 	# print("Robot Orientation is: ω:",round(r2d(omega),3),"degrees ,φ:",round(r2d(phi),3),"degrees ,κ:",round(r2d(kappa),3),"degrees")	
 	# O  = [int(x*1000) for x in O]

@@ -74,14 +74,6 @@ def exclude_missdetections(boxes,scores,classes,num_detections):
 			elif i == 4:
 				if tags[8] == 0 or blocks[i][1] > blocks[8][1]:
 					important_blocks.append(blocks[i])
-			elif i == 5:
-				if tags[8] == 1 and tags[6] == 1:
-					important_blocks.append((blocks[i][0],blocks[i][1],6))
-				elif tags[8] == 1 and tags[6] == 0:
-					# important_blocks.append((blocks[i][0],blocks[i][1],7))
-					print("do nothing")
-				else:
-					important_blocks.append((blocks[i][0],blocks[i][1],7))
 			else:
 				important_blocks.append(blocks[i])
 	# print(important_blocks)
@@ -213,10 +205,11 @@ def main():
 	print("#")
 	print("# 3rd stage ignition: Position Estimation  #")
 	print("# Calculating...")
-	x0,y0,z0,res = position_estimation(XYZ,xy)
+	omega,phi,kappa,x0,y0,z0 = position_estimation(XYZ,xy)
 	print("# SUCCESS!!!!!")
 	print("# Robot Position    is: X:",round(x0,3),"m , Y:",round(y0,3),"m , Z:",round(z0,3),"m")
-	print("# Residual =",res,"m")
+	print("# Robot orientation is: omega:",round(omega,3),"deg , phi:",round(phi,3),"deg , kappa:",round(kappa,3),"deg")
+	# print("# Residual =",res,"m")
 	print("#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#")
 	print("#-------------------------------------------------#")
 

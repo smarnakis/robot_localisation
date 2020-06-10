@@ -16,9 +16,16 @@ from IPython.display import display
 import ast
 import cv2 as cv
 # matplotlib.use('TkAgg')
-
+from math import *
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+def d2r(alpha):
+	theta = (pi/180)*alpha
+	return theta
+
+def r2d(theta):
+	alpha = (180/pi)*theta
+	return alpha
 
 def get_ref_test_image_path():
 	PROJECT_HOME_FOLDER = 	"../../"
@@ -41,32 +48,49 @@ def main():
 	data = []
 	print(len(lines))
 	i = 0
-	omegas,phis,x0s,y0s,z0s = [],[],[],[],[]
-	for i in range(0,len(lines),2):
+	omegais,phiis,omegas,phis,kappas,x0s,y0s,z0s = [],[],[],[],[],[],[],[]
+	for i in range(0,len(lines),3):
 		line1 = lines[i]
 		line2 = lines[i+1]
+		line3 = lines[i+2]
 		# print(line2)
 		init_omega = line1.split("|")[0].split(":")[1]
 		init_phi = line1.split("|")[1].split(":")[1]
-		omegas.append(float(init_omega))
-		phis.append(float(init_phi))
+		omegais.append(float(init_omega))
+		phiis.append(float(init_phi))
 		x0 = line2.split("|")[0].split(":")[1]
 		y0 = line2.split("|")[1].split(":")[1]
 		z0 = line2.split("|")[2].split(":")[1]
-		# print(x0,y0,z0)
+		omega = line3.split("|")[0].split(":")[1]
+		phi = line3.split("|")[1].split(":")[1]
+		kappa = line3.split("|")[2].split(":")[1]
+		print(omega,phi,kappa)
+		print(x0,y0,z0)
 		x0s.append(round(float(x0),2))
 		y0s.append(round(float(y0),2))
 		z0s.append(round(float(z0),2))
+		omegas.append(round(float(omega),2))
+		phis.append(round(float(phi),2))
+		kappas.append(round(float(kappa),2))
 	# fig,ax = plt.subplots()
 	# plt.scatter(omegas,x0s)
 	# plt.show()
 	fig = plt.figure()
 	ax = fig.gca(projection='3d')
-	ax.scatter(np.array(omegas),np.array(phis), np.array(x0s))
-	ax.scatter(np.array(omegas),np.array(phis), np.array(y0s))
+	ax.scatter(np.array(omegais),np.array(phiis), np.array(x0s))
+	ax.scatter(np.array(omegais),np.array(phiis), np.array(y0s))
 	# ax.scatter(np.array(omegas),np.array(phis), np.array(z0s))
-	ax.set_xlabel('OMEGAS')
-	ax.set_ylabel('PHIS')
+	ax.set_xlabel('INIT_OMEGAS')
+	ax.set_ylabel('INIT_PHIS')
+	plt.show()
+
+	fig = plt.figure()
+	ax = fig.gca(projection='3d')
+	ax.scatter(np.array(omegais),np.array(phiis), np.array(omegas))
+	ax.scatter(np.array(omegais),np.array(phiis), np.array(phis))
+	ax.scatter(np.array(omegais),np.array(phiis), np.array(kappas))
+	ax.set_xlabel('INIT_OMEGAS')
+	ax.set_ylabel('INIT_PHIS')
 	plt.show()
 
 def chop_block_CV(or_image,block_bounds):
@@ -97,5 +121,5 @@ def examine_sift_error():
 	return cropped_im,origin
 
 if __name__ == '__main__':
-	examine_sift_error()
-	# main()
+	# examine_sift_error()
+	main()
