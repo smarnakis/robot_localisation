@@ -56,22 +56,23 @@ def main():
 		# print(line2)
 		init_omega = line1.split("|")[0].split(":")[1]
 		init_phi = line1.split("|")[1].split(":")[1]
-		omegais.append(float(init_omega))
-		phiis.append(float(init_phi))
 		x0 = line2.split("|")[0].split(":")[1]
 		y0 = line2.split("|")[1].split(":")[1]
 		z0 = line2.split("|")[2].split(":")[1]
 		omega = line3.split("|")[0].split(":")[1]
 		phi = line3.split("|")[1].split(":")[1]
 		kappa = line3.split("|")[2].split(":")[1]
-		print(omega,phi,kappa)
-		print(x0,y0,z0)
-		x0s.append(round(float(x0),2))
-		y0s.append(round(float(y0),2))
-		z0s.append(round(float(z0),2))
-		omegas.append(round(float(omega),2))
-		phis.append(round(float(phi),2))
-		kappas.append(round(float(kappa),2))
+		if float(x0) >0 and float(y0)>0 and float(z0)>0:
+			omegais.append(float(init_omega))
+			phiis.append(float(init_phi))
+			# print(omega,phi,kappa)
+			# print(x0,y0,z0)
+			x0s.append(round(float(x0),2))
+			y0s.append(round(float(y0),2))
+			z0s.append(round(float(z0),2))
+			omegas.append(round(float(omega),2))
+			phis.append(round(float(phi),2))
+			kappas.append(round(float(kappa),2))
 	# fig,ax = plt.subplots()
 	# plt.scatter(omegas,x0s)
 	# plt.show()

@@ -197,7 +197,7 @@ def position_estimation(XYZ_raw,xy_raw):
 	XYZ,xy,f = pre_processing(XYZ,xy)
 	stop = 0
 	for omega_init in range(-170,170,20):
-		for phi_init in range(-80,80,10):
+		for phi_init in range(-120,120,10):
 			eop = [round(d2r(omega_init),5),round(d2r(phi_init),5),round(d2r(0),5),1.0,1.05,0.1]
 			omega,phi,kappa,x0,y0,z0 = space_resection(XYZ,xy,eop,f)
 			# print("_____________________________________")
@@ -211,26 +211,30 @@ def position_estimation(XYZ_raw,xy_raw):
 			print("omi:{}|phii:{}".format(omega_init,phi_init))
 			print("x0:{}|y0:{}|z0:{}".format(x0,y0,z0))
 			print("omega:{}|phi:{}|kappa:{}".format(omega,phi,kappa))
-			if x0 < 21.0 and x0 > -1.0 and y0 < 4 and y0 > 0.0 and z0 > 0.0:
+			if x0 < 11.0 and x0 > -1.0 and y0 < 4 and y0 > 0.0:
 				stop = 1
-				# break
-			elif x0 < 21.0 and x0 > 11.0 and y0 < 3 and y0 > 0.0 and z0 > 0.0:
+				break
+			elif x0 < 21.0 and x0 > 11.0 and y0 < 3 and y0 > 0.0:
 				stop = 1
-				# break
+				break
 		if stop:
 			o = 1
 			# print()
-			# break
-
+			break
+	# x0,y0 = 6.33387426014995,2.4177134639074565
 	O = (x0*1000,y0*1000,z0*1000)
-	# res = check_distance(a,b,A,B,O,2325,1736,3623)
+	
+	res = check_distance(a,b,A,B,O,2325,1736,3623)
 	# omega = mod(r2d(omega),180)
 	# phi = mod(r2d(phi),90)
 	# kappa = mod(r2d(kappa),180)
-
+	print(res*0.001)
 	return omega,phi,kappa,x0,y0,z0
 
 
+def test(x,y,xg,yg):
+	res = sqrt(pow(x-xg,2)+pow(y-yg,2))
+	print(res)
 
 
 if __name__ == '__main__':
@@ -263,6 +267,7 @@ if __name__ == '__main__':
 	xy = [(3063, 776), (3850, 482), (3087, 1819), (3897, 1750), (3087, 2979), (3950, 3185)]
 	x0,y0,f = 2325,1736,3623
 	omega,phi,kappa,x0,y0,z0 = position_estimation(XYZ,xy)
+	test(6.33,2.42,6.30,2.65)
 	# print("SUCCESS!!!!!")
 	# print("Robot Position    is: X:",round(x0,3),"m , Y:",round(y0,3),"m , Z:",round(z0,3),"m")
 	# print("# Robot orientation is: omega:",round(omega,3),"deg , phi:",round(phi,3),"deg , kappa:",round(kappa,3),"deg")

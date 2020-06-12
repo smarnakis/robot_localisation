@@ -19,6 +19,7 @@ import ast
 import cv2 as cv
 # matplotlib.use('TkAgg')
 # from test import examine_sift_error
+from math import *
 
 COLOURs = [(0,0,100),(0,100,0),(0,100,100),(100,0,0),
 						(100,0,100),(100,100,0),(100,50,100),
@@ -87,8 +88,8 @@ def Homography(kp1,des1,kp2,des2):
 		return [],[],[]
 
 def find_best_homography(ref_paths,test):
-	MIN_MATCH_COUNT = 27
-	MIN_FILTERED = 9
+	MIN_MATCH_COUNT = 28
+	MIN_FILTERED = 8
 
 	num_good = 0
 	num_matches = 0
@@ -169,6 +170,12 @@ def sift(img):
 	des = np.float32(des)
 	return kp,des
 
+def distance(start,end):
+	dst = sqrt(pow(start[0]-end[0],2)+pow(start[1]-end[1],2))
+	width = end[0] - start[0]
+	height = end[1] - start[1]
+	return width,height
+
 #<---------- CONTROL POINTS PROCESSING FUNCTIONS ---------># 
 def bring_ref_CPTS(tags):
 	# USAGE: Given the desired reference image tags, it retrieves the
@@ -206,16 +213,22 @@ def bring_ref_CPTS(tags):
 	f.close()
 	return data
 
-def trans_relative_test_CPTS(ref_data,Ms):
+def trans_relative_test_CPTS(ref_data,Ms,img_sizes):
 	# USAGE: Uses the Homography transform to 
 	rel_CPTS = []
 	space_coords = []
+	cutoff = 0.1
 	for i in range(len(Ms)):
 		if Ms[i] != []:
 			ref_CPTS = np.float32(ref_data[i][1]).reshape(-1,1,2)
-			space_coords.append(ref_data[i][2])
 			CPTS = cv.perspectiveTransform(ref_CPTS,Ms[i])
-			rel_CPTS.append(CPTS)
+			width,height = distance(CPTS[0][0],CPTS[-1][0])
+			print(width,height)
+			if width > cutoff*img_sizes[i][0] and height > cutoff*img_sizes[i][1]: 
+				space_coords.append(ref_data[i][2])
+				rel_CPTS.append(CPTS)
+			else:
+				rel_CPTS.append([])				
 		else:
 			rel_CPTS.append([])
 	return rel_CPTS,space_coords
@@ -340,9 +353,9 @@ def check_homography():
 	draw_CPTs(TEST_IMAGE_PATHS,dst,COLOURs[0])
 
 def check_CPTS():
-	TEST_IMAGE_PATH = '../../images/detected_doors/DOOR6.jpg'
-	REF_IMAGE_PATH = "../../images/reference/DOOR3/DOOR3.2.jpg"
-	CPTs = [(380,290),(650,140),(375,685),(640,690),(370,1080),(640,1250)]
+	TEST_IMAGE_PATH = '../../images/detected_doors/DOOR9.jpg'
+	REF_IMAGE_PATH = "../../images/reference/DOOR9/DOOR9.1.jpg"
+	CPTs = [(20,560),(450,560),(840,560),(35,1000),(450,1000),(830,1000),(50,1460),(450,1460),(820,1460)]
 	draw_CPTs(REF_IMAGE_PATH,CPTs,COLOURs[0])
 	draw_sift_matching(REF_IMAGE_PATH,TEST_IMAGE_PATH,CPTs)
 
@@ -365,6 +378,7 @@ def algorithm1(test_image_blocks):
 	tags = []
 	Ms = []
 	origins = []
+	img_sizes = []
 	PATH_TO_TEST_IMAGE = '../../images/test'
 	TEST_IMAGE_PATH = os.path.join(PATH_TO_TEST_IMAGE,os.listdir(PATH_TO_TEST_IMAGE)[0])
 	for block in test_image_blocks:
@@ -372,6 +386,8 @@ def algorithm1(test_image_blocks):
 		draw_tag = "../../images/detected_doors/DOOR" + str(block[2]) + ".jpg"
 		# LOAD TEST IMG BLOCK
 		test_img_block = cv.imread(draw_tag,cv.COLOR_BGR2GRAY)
+		h,w,_ = test_img_block.shape
+		img_sizes.append((w,h)) 
 		REF_IMAGE_PATHS = [os.path.join(PATH_TO_REF_IMAGES_DIR,im) for im in os.listdir(PATH_TO_REF_IMAGES_DIR)]
 		# test_img_block = block[0]
 		origins.append(block[1])
@@ -387,7 +403,7 @@ def algorithm1(test_image_blocks):
 			tags.append("")
 
 	ref_data = bring_ref_CPTS(tags)
-	relative_test_CPTS,space_coords = trans_relative_test_CPTS(ref_data,Ms)
+	relative_test_CPTS,space_coords = trans_relative_test_CPTS(ref_data,Ms,img_sizes)
 	# print("DOOR4 BLOCK IMAGE CPTS:",relative_test_CPTS[0])
 	space_coordinates = []
 	for block in space_coords:
