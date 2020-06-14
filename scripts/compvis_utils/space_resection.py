@@ -31,7 +31,6 @@ def mod(D,d):
 		res = -((-D) % d)
 	return res
 
-
 def d2r(alpha):
 	theta = (pi/180)*alpha
 	return theta
@@ -84,10 +83,8 @@ def space_resection(XYZ,xy,eop,f):
 		mp = np.matrix([[cos(phi),0,-sin(phi)],[0,1,0],[sin(phi),0,cos(phi)]])
 		mk = np.matrix([[cos(kappa),sin(kappa),0],[-sin(kappa),cos(kappa),0],[0,0,1]])
 
-		# m = mk*mp*mw
 		m = np.round(mk*mp*mw,6)
 
-		# print("MMM:",m)
 		gg = ng * 2
 
 		dx = np.zeros(ng)
@@ -105,9 +102,6 @@ def space_resection(XYZ,xy,eop,f):
 			r[k] = m[0,0]*(x[k] - x0) + m[0,1]*(z[k] - z0) + m[0,2]*(y0 - y[k])
 			s[k] = m[1,0]*(x[k] - x0) + m[1,1]*(z[k] - z0) + m[1,2]*(y0 - y[k])
 
-		# print("q:",q)
-		# print("r:",r)
-		# print("s:",s)
 		j = 0
 		ff = np.mat(np.zeros((gg,1)))
 		for k in range(0,gg,2):
@@ -144,7 +138,7 @@ def space_resection(XYZ,xy,eop,f):
 		x0 = x0 + delta[3,0]
 		y0 = y0 + delta[5,0]
 		z0 = z0 + delta[4,0]
-		# print("ii:",ii,"res:",omega,phi,kappa,x0,y0,z0)
+
 	return omega,phi,kappa,x0,y0,z0
 
 def pre_processing(XYZ,xy):
@@ -163,14 +157,6 @@ def pre_processing(XYZ,xy):
 
 	return XYZ,xy,f
 
-def exclude_negatives(XYZ_raw,xy_raw):
-	xy,XYZ = [],[]
-	for i in range(len(xy_raw)):
-		if xy_raw[i][0] > 0 and xy_raw[i][1] > 0:
-			xy.append(xy_raw[i])
-			XYZ.append(XYZ_raw[i])
-	return XYZ,xy
-
 def check_distance(a,b,A,B,O,x0,y0,f):
 	o = (x0,y0)
 	g = ((b[0]-a[0])/2 + a[0],(b[1]-a[1])/2 + a[1])
@@ -183,59 +169,51 @@ def check_distance(a,b,A,B,O,x0,y0,f):
 	OG = Og/ab *AB
 	de = sqrt(pow(O[0]-G[0],2) + pow(O[1]-G[1],2))
 	res = sqrt(pow(OG-de,2))
-	# print("res:",gamma*0.001)
 	return res
 
-def position_estimation(XYZ_raw,xy_raw):
-	# print(XYZ_raw)
-	XYZ,xy = exclude_negatives(XYZ_raw,xy_raw)
-	# print(XYZ)
-	A = XYZ[0]
-	B = XYZ[5]
-	a = xy[0]
-	b = xy[5]
+def position_estimation(XYZ,xy,detected_tags):
+	# A = XYZ[0]
+	# B = XYZ[5]
+	# a = xy[0]
+	# b = xy[5]
 	XYZ,xy,f = pre_processing(XYZ,xy)
-	stop = 0
-	for omega_init in range(-170,170,20):
-		for phi_init in range(-120,120,10):
-			eop = [round(d2r(omega_init),5),round(d2r(phi_init),5),round(d2r(0),5),1.0,1.05,0.1]
-			omega,phi,kappa,x0,y0,z0 = space_resection(XYZ,xy,eop,f)
-			# print("_____________________________________")
-			# print("For initial omega:{} phi: {} kappa:{}".format(omega_init,phi_init,0))
-			# print("RESULTS: x0: {}, y0: {}, z0: {} ".format(x0,y0,z0))
-			# print("_____________________________________")
-			omega = mod(r2d(omega),180)
-			phi = mod(r2d(phi),90)
-			kappa = mod(r2d(kappa),180)
-			# print(omega,phi,kappa)
-			print("omi:{}|phii:{}".format(omega_init,phi_init))
-			print("x0:{}|y0:{}|z0:{}".format(x0,y0,z0))
-			print("omega:{}|phi:{}|kappa:{}".format(omega,phi,kappa))
-			if x0 < 11.0 and x0 > -1.0 and y0 < 4 and y0 > 0.0:
-				stop = 1
-				break
-			elif x0 < 21.0 and x0 > 11.0 and y0 < 3 and y0 > 0.0:
-				stop = 1
-				break
-		if stop:
-			o = 1
-			# print()
+
+	phi_min = -170
+	phi_max = 170
+	if '4' in detected_tags:
+		phi_min = -130
+		phi_max = -30
+	elif '5' in detected_tags:
+		phi_min = -80
+		phi_max = 10
+	elif '9' in detected_tags:
+		phi_min = 30
+		phi_max = 130
+	elif '8' in detected_tags:
+		phi_min = -30
+		phi_max = 60
+	elif '1' in detected_tags:
+		phi_min = -30
+		phi_max = 60
+	elif '2' in detected_tags or '3' in detected_tags:
+		phi_min = -180
+		phi_max = -100
+
+	for phi_init in range(phi_min,phi_max,10):
+		eop = [round(d2r(0),5),round(d2r(phi_init),5),round(d2r(0),5),1.0,1.05,0.1]
+		omega,phi,kappa,x0,y0,z0 = space_resection(XYZ,xy,eop,f)
+
+		if x0 < 11.0 and x0 > -1.0 and y0 < 4 and y0 > 0.0:
 			break
-	# x0,y0 = 6.33387426014995,2.4177134639074565
-	O = (x0*1000,y0*1000,z0*1000)
-	
-	res = check_distance(a,b,A,B,O,2325,1736,3623)
-	# omega = mod(r2d(omega),180)
-	# phi = mod(r2d(phi),90)
-	# kappa = mod(r2d(kappa),180)
-	print(res*0.001)
+		elif x0 < 21.0 and x0 > 11.0 and y0 < 3 and y0 > 0.0:
+			break
+
+	omega = 90 + mod(r2d(omega),180)
+	phi = mod(r2d(phi),180)
+	kappa = mod(r2d(kappa),180)
+	# O = (x0*1000,y0*1000,z0*1000)
+	# res = check_distance(a,b,A,B,O,2325,1736,3623)
 	return omega,phi,kappa,x0,y0,z0
-
-
-def test(x,y,xg,yg):
-	res = sqrt(pow(x-xg,2)+pow(y-yg,2))
-	print(res)
-
 
 if __name__ == '__main__':
 	# DOORS 2-3
@@ -263,16 +241,7 @@ if __name__ == '__main__':
 	XYZ = [(0, 130, 2170), (0, 1050, 2170), (0, 1970, 2170), (0, 130, 1085), (0, 1050, 1085), (0, 1970, 1085), (0, 130, 0), (0, 1050, 0), (0, 1970, 0), (3300, 0, 2140), (1550, 0, 2140), (3300, 0, 1070), (1550, 0, 1070), (3300, 0, 1070), (1550, 0, 1070)]
 
 	
-	XYZ = [(9250, 0, 2170), (8250, 0, 2170), (9250, 0, 1085), (8250, 0, 1085), (9250, 0, 0), (8250, 0, 0)]
-	xy = [(3063, 776), (3850, 482), (3087, 1819), (3897, 1750), (3087, 2979), (3950, 3185)]
+	XYZ = [(14710, 2670, 2160), (15710, 2670, 2160), (14710, 2670, 1080), (15710, 2670, 1080), (14710, 2670, 0), (15710, 2670, 0)]
+	xy = [(3203, 330), (3901, 488), (3125, 1653), (3780, 1607), (3040, 2797), (3673, 2594)]
 	x0,y0,f = 2325,1736,3623
 	omega,phi,kappa,x0,y0,z0 = position_estimation(XYZ,xy)
-	test(6.33,2.42,6.30,2.65)
-	# print("SUCCESS!!!!!")
-	# print("Robot Position    is: X:",round(x0,3),"m , Y:",round(y0,3),"m , Z:",round(z0,3),"m")
-	# print("# Robot orientation is: omega:",round(omega,3),"deg , phi:",round(phi,3),"deg , kappa:",round(kappa,3),"deg")
-
-	# print("Residual =",res)
-	# print("Robot Orientation is: ω:",round(r2d(omega),3),"degrees ,φ:",round(r2d(phi),3),"degrees ,κ:",round(r2d(kappa),3),"degrees")	
-	# O  = [int(x*1000) for x in O]
-	# check_distance(XYZ,xy,O,x0,y0,f)

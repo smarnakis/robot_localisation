@@ -17,8 +17,6 @@ from PIL import ImageDraw
 from IPython.display import display
 import ast
 import cv2 as cv
-# matplotlib.use('TkAgg')
-# from test import examine_sift_error
 from math import *
 
 COLOURs = [(0,0,100),(0,100,0),(0,100,100),(100,0,0),
@@ -35,6 +33,13 @@ def crop_pil(im_path):
 	res.show()
 	# res.save('../../images/reference/DOOR6/DOOR6.5.jpg')
 
+def exclude_negatives(XYZ_raw,xy_raw):
+	xy,XYZ = [],[]
+	for i in range(len(xy_raw)):
+		if xy_raw[i][0] > 0 and xy_raw[i][1] > 0:
+			xy.append(xy_raw[i])
+			XYZ.append(XYZ_raw[i])
+	return XYZ,xy
 
 def load_image_into_numpy_array(image):
     (im_width, im_height) = image.size
@@ -72,7 +77,7 @@ def Homography(kp1,des1,kp2,des2):
 			good.append(m)
 
 		
-	print("Good matches detected: {}".format(len(good)))
+	# print("Good matches detected: {}".format(len(good)))
 	if len(good) > 0:
 		# Homografy creation with RANSAC filtering
 		src_pts = np.float32([ kp1[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
@@ -82,7 +87,7 @@ def Homography(kp1,des1,kp2,des2):
 		sumx = 0
 		for x in matchesMask:
 			sumx +=  x
-		print("Final matches after RANSAC: {}".format(sumx))
+		# print("Final matches after RANSAC: {}".format(sumx))
 		return M,matchesMask,good
 	else:
 		return [],[],[]
@@ -130,7 +135,7 @@ def find_best_homo_pair(REF_PATHS,img2):
 	#					img2: the test image block in np.array format [width,length,channels(BGR)]
 	# OUTPUS: BEST_REF_PATH: the path to the best reference image
 	#					best_M: The homography matrix between the test image block and the best ref image
-	MIN_MATCH_COUNT = 29
+	MIN_MATCH_COUNT = 28
 	MIN_FILTERED = 9
 
 	num_good = 0
@@ -141,7 +146,7 @@ def find_best_homo_pair(REF_PATHS,img2):
 
 	kp2,des2 = sift(img2)	
 	for REF_PATH in REF_PATHS:
-		print(REF_PATH)
+		# print(REF_PATH)
 		img1 = cv.imread(REF_PATH,cv.COLOR_BGR2GRAY)
 		kp1,des1 = sift(img1)
 		
@@ -156,7 +161,7 @@ def find_best_homo_pair(REF_PATHS,img2):
 			num_matches = sumx
 			best_M = M
 			BEST_REF_PATH = REF_PATH
-	print("The best ref is: " + BEST_REF_PATH)
+	# print("The best ref is: " + BEST_REF_PATH)
 
 	return BEST_REF_PATH,best_M
 
@@ -188,11 +193,11 @@ def bring_ref_CPTS(tags):
 	lines = f.readlines()
 	data = []
 	i = 0
-	print(tags)
+	# print(tags)
 	last_tag = tags[-1]
 	for line in lines:
 		while(tags[i]==""):
-			print("i=",i)
+			# print("i=",i)
 			data.append(())
 			if i < len(tags)-1:
 				i += 1
@@ -205,11 +210,11 @@ def bring_ref_CPTS(tags):
 		# print(line[0],tags[i])
 		if tags[i] == line[0]:
 			i += 1
-			print(i)
+			# print(i)
 			data.append((line[0],ast.literal_eval(line[1]),ast.literal_eval(line[2])))
 		if tags[i-1] == last_tag and i!=0:
 			break
-	print(data)
+	# print(data)
 	f.close()
 	return data
 
@@ -223,7 +228,6 @@ def trans_relative_test_CPTS(ref_data,Ms,img_sizes):
 			ref_CPTS = np.float32(ref_data[i][1]).reshape(-1,1,2)
 			CPTS = cv.perspectiveTransform(ref_CPTS,Ms[i])
 			width,height = distance(CPTS[0][0],CPTS[-1][0])
-			print(width,height)
 			if width > cutoff*img_sizes[i][0] and height > cutoff*img_sizes[i][1]: 
 				space_coords.append(ref_data[i][2])
 				rel_CPTS.append(CPTS)
@@ -376,45 +380,42 @@ def main3():
 
 def algorithm1(test_image_blocks):
 	tags = []
+	detected_tags = []
 	Ms = []
 	origins = []
 	img_sizes = []
+
 	PATH_TO_TEST_IMAGE = '../../images/test'
 	TEST_IMAGE_PATH = os.path.join(PATH_TO_TEST_IMAGE,os.listdir(PATH_TO_TEST_IMAGE)[0])
+	
 	for block in test_image_blocks:
-		PATH_TO_REF_IMAGES_DIR = "../../images/reference/DOOR" + str(block[2])
-		draw_tag = "../../images/detected_doors/DOOR" + str(block[2]) + ".jpg"
+		PATH_TO_REF_IMAGES_DIR = "../../images/reference/DOOR" + str(block[1])
+		draw_tag = "../../images/detected_doors/DOOR" + str(block[1]) + ".jpg"
 		# LOAD TEST IMG BLOCK
+		detected_tags.append(str(block[1]))
 		test_img_block = cv.imread(draw_tag,cv.COLOR_BGR2GRAY)
 		h,w,_ = test_img_block.shape
 		img_sizes.append((w,h)) 
 		REF_IMAGE_PATHS = [os.path.join(PATH_TO_REF_IMAGES_DIR,im) for im in os.listdir(PATH_TO_REF_IMAGES_DIR)]
-		# test_img_block = block[0]
-		origins.append(block[1])
+		origins.append(block[0])
 		ref_image_path,best_M = find_best_homo_pair(REF_IMAGE_PATHS,test_img_block)
 		Ms.append(best_M)
 		if best_M != []:
-			# print("ALGO1")
-			# print(best_M)
 			tags.append(ref_image_path.split('/')[-1])
 			pts = [(100,200),(540,200),(1010,200),(100,715),(540,715),(1000,715),(100,1260),(540,1260),(1000,1260)]
-			draw_sift_matching(ref_image_path,block[0],pts)
+			# draw_sift_matching(ref_image_path,block[0],pts)
 		else:
 			tags.append("")
 
 	ref_data = bring_ref_CPTS(tags)
 	relative_test_CPTS,space_coords = trans_relative_test_CPTS(ref_data,Ms,img_sizes)
-	# print("DOOR4 BLOCK IMAGE CPTS:",relative_test_CPTS[0])
 	space_coordinates = []
 	for block in space_coords:
 		space_coordinates = space_coordinates + block
-	# print("XYZ=")
-	# print(space_coordinates)
 	test_CPTS,test_CPTS_vis = abs_test_CPTS(relative_test_CPTS,origins)
-	# print("xy=")
-	# print(test_CPTS)
 	draw_test_CPTS(TEST_IMAGE_PATH,test_CPTS_vis)
-	return space_coordinates,test_CPTS
+	XYZ,xy = exclude_negatives(space_coordinates,test_CPTS)
+	return XYZ,xy,detected_tags
 
 
 def testing_function(test_image_blocks):
@@ -424,15 +425,15 @@ def testing_function(test_image_blocks):
 	PATH_TO_TEST_IMAGE = '../../images/test'
 	TEST_IMAGE_PATH = os.path.join(PATH_TO_TEST_IMAGE,os.listdir(PATH_TO_TEST_IMAGE)[0])
 	for block in test_image_blocks:
-		PATH_TO_REF_IMAGES_DIR = "../../images/reference/DOOR" + str(block[2])
-		draw_tag = "../../images/detected_doors/DOOR" + str(block[2]) + ".jpg"
+		PATH_TO_REF_IMAGES_DIR = "../../images/reference/DOOR" + str(block[1])
+		draw_tag = "../../images/detected_doors/DOOR" + str(block[1]) + ".jpg"
 		# LOAD TEST IMG BLOCK
 		test_img_block1 = cv.imread(draw_tag,cv.COLOR_BGR2GRAY)
 		REF_IMAGE_PATHS = [os.path.join(PATH_TO_REF_IMAGES_DIR,im) for im in os.listdir(PATH_TO_REF_IMAGES_DIR)]
-		test_img_block = block[0]
+		# test_img_block = block[0]
 		if (test_img_block == test_img_block1).all():
 			print("SAME MATRICES")
-		origins.append(block[1])
+		origins.append(block[0])
 		ref_image_path,best_M = find_best_homo_pair(REF_IMAGE_PATHS,test_img_block)
 		draw_sift_matching(ref_image_path,test_img_block1)
 		draw_sift_matching(ref_image_path,test_img_block)

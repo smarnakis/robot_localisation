@@ -65,7 +65,7 @@ def exclude_missdetections(boxes,scores,classes,num_detections):
 				tags[7] = 0
 			if block[2] == 9:
 				tags[8] = 0
-	print(blocks)
+	# print(blocks)
 	for i in range(9):
 		if tags[i] == 1:
 			if i == 3:
@@ -118,7 +118,7 @@ def chop_block_CV(or_image,block_bounds):
 	cropped_im = or_image[top:bottom,left:right,:]
 	# plt.imshow(cropped_im[:,:,::-1]),plt.show()
 	origin = (left,top)
-	print(origin)
+	# print(origin)
 	return cropped_im,origin
 
 
@@ -173,29 +173,43 @@ def main():
 	# Bring test image and image blocks
 	PATH_TO_REF_IMAGES_DIR,PATH_TO_TEST_IMAGES_DIR = get_ref_test_image_path()
 	TEST_IMAGE_PATHS = [os.path.join(PATH_TO_TEST_IMAGES_DIR,im) for im in os.listdir(PATH_TO_TEST_IMAGES_DIR)]
+
 	print("#------------------------------------------------#")
 	print("#~~~~~~~~~~Robot localisation algorithm!~~~~~~~~~#")
 	print()
 	print("--------------------TENSORFOW WARN ---------------------------------")
+
 	_,boxes,scores,classes,num_detections = find_test_doors(PATH_TO_TEST_IMAGES_DIR)
+
 	print("--------------------------------------------------------------------")
 	print("# 1st stage ignition: Static Object Detection  #")
 	print("# Calculating...")	
+	print("#")
+	
 	important_blocks = exclude_missdetections(boxes,scores,classes,num_detections)
 	image = cv.imread(TEST_IMAGE_PATHS[0],cv.COLOR_BGR2GRAY)
-	print("TEST IMAGE TYPE:",image.dtype)
 	image_blocks = seperate_blocks(image,important_blocks)
+
 	print("# First stage completed!")
 	print("# Doors detected:")
+
 	for block in image_blocks:
 		print("# DOOR",block[2])
 
+	print("#")
 	print("# 2nd stage ignition: Control Point Extraction  #")
 	print("# Calculating...")
+	print("#")
+
 	save_image_parts(image_blocks,"cv")
-	XYZ,xy = algorithm1(image_blocks)
+	image_blocks_filtered = []
+	for block in image_blocks:
+		image_blocks_filtered.append(block[1:]) 
+	XYZ,xy,detected_tags = algorithm1(image_blocks_filtered)
 	# testing_function(image_blocks)
-	print("# The following Control Points were gathered:")
+
+	print("# Second stage completed!")
+	print("#Control Points gathered:")
 	print("#")
 	print("# Space coordinates (mm):")
 	print("# XYZ =",XYZ)
@@ -205,11 +219,13 @@ def main():
 	print("#")
 	print("# 3rd stage ignition: Position Estimation  #")
 	print("# Calculating...")
-	omega,phi,kappa,x0,y0,z0 = position_estimation(XYZ,xy)
+	print("#")
+	
+	omega,phi,kappa,x0,y0,z0 = position_estimation(XYZ,xy,detected_tags)
+
 	print("# SUCCESS!!!!!")
 	print("# Robot Position    is: X:",round(x0,3),"m , Y:",round(y0,3),"m , Z:",round(z0,3),"m")
 	print("# Robot orientation is: omega:",round(omega,3),"deg , phi:",round(phi,3),"deg , kappa:",round(kappa,3),"deg")
-	# print("# Residual =",res,"m")
 	print("#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#")
 	print("#-------------------------------------------------#")
 
