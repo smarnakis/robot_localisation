@@ -5,6 +5,8 @@ from PIL import Image
 import numpy as np
 import os
 import cv2 as cv
+import time 
+import glob
 
 sys.path.append('..')
 from detection.door_detection import find_test_doors
@@ -66,14 +68,21 @@ def exclude_missdetections(boxes,scores,classes,num_detections):
 			if block[2] == 9:
 				tags[8] = 0
 	# print(blocks)
+	door4 = False
 	for i in range(9):
 		if tags[i] == 1:
 			if i == 3:
-				if tags[8] == 0 or blocks[i][1] > blocks[8][1]:
+				if tags[8] == 0:
 					important_blocks.append(blocks[i])
+				elif blocks[i][1] > blocks[8][1]:
+					important_blocks.append(blocks[i])
+					door4 = True
 			elif i == 4:
 				if tags[8] == 0 or blocks[i][1] > blocks[8][1]:
 					important_blocks.append(blocks[i])
+			# elif i = 8:
+			# 	if not door4:
+			# 		important_blocks.append(blocks[i])	
 			else:
 				important_blocks.append(blocks[i])
 	# print(important_blocks)
@@ -179,7 +188,7 @@ def main():
 	print()
 	print("--------------------TENSORFOW WARN ---------------------------------")
 
-	_,boxes,scores,classes,num_detections = find_test_doors(PATH_TO_TEST_IMAGES_DIR)
+	_,boxes,scores,classes,num_detections = find_test_doors(TEST_IMAGE_PATHS[0])
 
 	print("--------------------------------------------------------------------")
 	print("# 1st stage ignition: Static Object Detection  #")
@@ -229,6 +238,53 @@ def main():
 	print("#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#")
 	print("#-------------------------------------------------#")
 
+def robot_localisation(TEST_IMAGE_PATH,f):
+	start = time.time()
+	image_num = TEST_IMAGE_PATH.split('/')[-1].split('.')[0]
+	print(TEST_IMAGE_PATH)
+	f.write("{} |".format(image_num))
+
+	nn_start = time.time()
+	_,boxes,scores,classes,num_detections = find_test_doors(TEST_IMAGE_PATH)
+
+	important_blocks = exclude_missdetections(boxes,scores,classes,num_detections)
+	image = cv.imread(TEST_IMAGE_PATH,cv.COLOR_BGR2GRAY)
+	image_blocks = seperate_blocks(image,important_blocks)
+	nn_elapsed = time.time() - nn_start
+	
+	detected_doors = []
+	for block in image_blocks:
+		f.write(" DOOR{}".format(block[2]))
+	save_image_parts(image_blocks,"cv")
+	image_blocks_filtered = []
+	for block in image_blocks:
+		image_blocks_filtered.append(block[1:]) 
+	CPTS_start = time.time()
+	XYZ,xy,detected_tags = algorithm1(image_blocks_filtered,TEST_IMAGE_PATH)
+	CPTS_elapsed = time.time() - CPTS_start
+	files = glob.glob('../../images/detected_doors/*')
+	for file in files:
+		x =1
+		# os.remove(file)
+	sr_start = time.time()
+	omega,phi,kappa,x0,y0,z0 = position_estimation(XYZ,xy,detected_tags)
+	sr_elapsed = time.time() - sr_start
+	total_time_elapsed = time.time() - start
+	f.write(" | {},{},{} | {},{},{} | {},{},{},{} \n".format(round(x0,3),round(y0,3),round(z0,3),round(omega,3),round(phi,3),round(kappa,3),round(nn_elapsed,2),round(CPTS_elapsed,2),round(sr_elapsed,4),round(total_time_elapsed,2)))
+
+
+def evaluation():
+	RESULTS_PATH = "../../evaluation/results_test.txt"
+	f = open(RESULTS_PATH,"wt")
+	# Bring test image and image blocks
+	PATH_TO_TEST_IMAGES_DIR = "../../images/test/TESTING"
+	TEST_IMAGE_PATHS = [os.path.join(PATH_TO_TEST_IMAGES_DIR,im) for im in os.listdir(PATH_TO_TEST_IMAGES_DIR)]
+	TEST_IMAGE_PATHS.sort()
+	print(TEST_IMAGE_PATHS)
+	f.write("PIC NUM | DOORS DETECTED | CAMERA POSITION (m) | CAMERA ORIENTATION (deg) | TIME ELAPSED (s): 1st|2nd|3rd\n")
+	for TEST_IMAGE_PATH in TEST_IMAGE_PATHS:
+		robot_localisation(TEST_IMAGE_PATH,f)
+	f.close()
 
 def check_crop():
 	important_blocks = [(np.array([0.44808996, 0.13009809, 0.60111403, 0.22902723]), 0.99061674, 4)]
@@ -239,5 +295,5 @@ def check_crop():
 
 
 if __name__ == '__main__':
-	main()
-	# check_crop()
+	# main()
+	evaluation()

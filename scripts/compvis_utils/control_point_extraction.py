@@ -77,7 +77,7 @@ def Homography(kp1,des1,kp2,des2):
 			good.append(m)
 
 		
-	# print("Good matches detected: {}".format(len(good)))
+	print("Good matches detected: {}".format(len(good)))
 	if len(good) > 0:
 		# Homografy creation with RANSAC filtering
 		src_pts = np.float32([ kp1[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
@@ -87,7 +87,7 @@ def Homography(kp1,des1,kp2,des2):
 		sumx = 0
 		for x in matchesMask:
 			sumx +=  x
-		# print("Final matches after RANSAC: {}".format(sumx))
+		print("Final matches after RANSAC: {}".format(sumx))
 		return M,matchesMask,good
 	else:
 		return [],[],[]
@@ -146,7 +146,7 @@ def find_best_homo_pair(REF_PATHS,img2):
 
 	kp2,des2 = sift(img2)	
 	for REF_PATH in REF_PATHS:
-		# print(REF_PATH)
+		print(REF_PATH)
 		img1 = cv.imread(REF_PATH,cv.COLOR_BGR2GRAY)
 		kp1,des1 = sift(img1)
 		
@@ -161,7 +161,7 @@ def find_best_homo_pair(REF_PATHS,img2):
 			num_matches = sumx
 			best_M = M
 			BEST_REF_PATH = REF_PATH
-	# print("The best ref is: " + BEST_REF_PATH)
+	print("The best ref is: " + BEST_REF_PATH)
 
 	return BEST_REF_PATH,best_M
 
@@ -188,16 +188,16 @@ def bring_ref_CPTS(tags):
 	# INPUTS: tags: String list with the image tags
 	# OUTPUTS: data: tuple of format: 
 	# (String:ref_image_tag,list of tuples:Image CPT coords,list of tuples: Space CPT coords) 
-	DATABASE_PATH = "../../images/reference/CPTS.txt"
+	DATABASE_PATH = "../../database/CPTS.txt"
 	f = open(DATABASE_PATH,"rt")
 	lines = f.readlines()
 	data = []
 	i = 0
-	# print(tags)
+	print(tags)
 	last_tag = tags[-1]
 	for line in lines:
 		while(tags[i]==""):
-			# print("i=",i)
+			print("i=",i)
 			data.append(())
 			if i < len(tags)-1:
 				i += 1
@@ -207,12 +207,12 @@ def bring_ref_CPTS(tags):
 		if i == len(tags):
 			break
 		line = line.split(" | ")
-		# print(line[0],tags[i])
+		print(line[0],tags[i])
 		if tags[i] == line[0]:
 			i += 1
-			# print(i)
+			print("found:",i)
 			data.append((line[0],ast.literal_eval(line[1]),ast.literal_eval(line[2])))
-		if tags[i-1] == last_tag and i!=0:
+		if i == len(tags):
 			break
 	# print(data)
 	f.close()
@@ -225,6 +225,8 @@ def trans_relative_test_CPTS(ref_data,Ms,img_sizes):
 	cutoff = 0.1
 	for i in range(len(Ms)):
 		if Ms[i] != []:
+			print(i)
+			print(ref_data)
 			ref_CPTS = np.float32(ref_data[i][1]).reshape(-1,1,2)
 			CPTS = cv.perspectiveTransform(ref_CPTS,Ms[i])
 			width,height = distance(CPTS[0][0],CPTS[-1][0])
@@ -357,9 +359,25 @@ def check_homography():
 	draw_CPTs(TEST_IMAGE_PATHS,dst,COLOURs[0])
 
 def check_CPTS():
-	TEST_IMAGE_PATH = '../../images/detected_doors/DOOR9.jpg'
-	REF_IMAGE_PATH = "../../images/reference/DOOR9/DOOR9.1.jpg"
-	CPTs = [(20,560),(450,560),(840,560),(35,1000),(450,1000),(830,1000),(50,1460),(450,1460),(820,1460)]
+	DATABASE_PATH = "../../database/CPTS.txt"
+	f = open(DATABASE_PATH,"rt")
+	lines = f.readlines()
+	data = []
+	i = 0
+	# print(tags)
+	tag = "DOOR5.7.jpg" 
+	for line in lines:
+		line = line.split(" | ")
+		# print(line[0],tags[i])
+		if tag in line[0]:
+			i += 1
+			CPTs = ast.literal_eval(line[1])
+			break
+	TEST_IMAGE_PATH = '../../images/detected_doors/DOOR5.jpg'
+	REF_IMAGE_PATH = "../../images/reference/DOOR5/" + tag
+	# CPTs = [(20,560),(450,560),(840,560),(35,1000),(450,1000),(830,1000),(50,1460),(450,1460),(820,1460)]
+	print(REF_IMAGE_PATH)
+	print(CPTs)
 	draw_CPTs(REF_IMAGE_PATH,CPTs,COLOURs[0])
 	draw_sift_matching(REF_IMAGE_PATH,TEST_IMAGE_PATH,CPTs)
 
@@ -378,7 +396,7 @@ def main3():
 	plt.imshow(test_img[:,:,::-1]),plt.show()
 
 
-def algorithm1(test_image_blocks):
+def algorithm1(test_image_blocks,TEST_IMAGE_PATH):
 	tags = []
 	detected_tags = []
 	Ms = []
@@ -386,7 +404,7 @@ def algorithm1(test_image_blocks):
 	img_sizes = []
 
 	PATH_TO_TEST_IMAGE = '../../images/test'
-	TEST_IMAGE_PATH = os.path.join(PATH_TO_TEST_IMAGE,os.listdir(PATH_TO_TEST_IMAGE)[0])
+	# TEST_IMAGE_PATH = os.path.join(PATH_TO_TEST_IMAGE,os.listdir(PATH_TO_TEST_IMAGE)[0])
 	
 	for block in test_image_blocks:
 		PATH_TO_REF_IMAGES_DIR = "../../images/reference/DOOR" + str(block[1])
@@ -413,7 +431,7 @@ def algorithm1(test_image_blocks):
 	for block in space_coords:
 		space_coordinates = space_coordinates + block
 	test_CPTS,test_CPTS_vis = abs_test_CPTS(relative_test_CPTS,origins)
-	draw_test_CPTS(TEST_IMAGE_PATH,test_CPTS_vis)
+	# draw_test_CPTS(TEST_IMAGE_PATH,test_CPTS_vis)
 	XYZ,xy = exclude_negatives(space_coordinates,test_CPTS)
 	return XYZ,xy,detected_tags
 

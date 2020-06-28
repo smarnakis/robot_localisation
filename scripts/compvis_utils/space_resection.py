@@ -138,7 +138,9 @@ def space_resection(XYZ,xy,eop,f):
 		x0 = x0 + delta[3,0]
 		y0 = y0 + delta[5,0]
 		z0 = z0 + delta[4,0]
-
+		if ii > 60:
+			omega,phi,kappa,x0,y0,z0 = -1,-1,-1,-1,-1,-1
+			break
 	return omega,phi,kappa,x0,y0,z0
 
 def pre_processing(XYZ,xy):
@@ -149,7 +151,7 @@ def pre_processing(XYZ,xy):
 	XYZ = np.array(XYZ)
 	
 	XYZ = XYZ * 0.001
-	
+	print(xy)
 	xy[:,0] = xy[:,0] - x0
 	xy[:,1] = xy[:,1] - y0
 	xy = xy * pixel_size
@@ -193,7 +195,7 @@ def position_estimation(XYZ,xy,detected_tags):
 		phi_min = -30
 		phi_max = 60
 	elif '1' in detected_tags:
-		phi_min = -30
+		phi_min = 10
 		phi_max = 60
 	elif '2' in detected_tags or '3' in detected_tags:
 		phi_min = -180
@@ -241,7 +243,9 @@ if __name__ == '__main__':
 	XYZ = [(0, 130, 2170), (0, 1050, 2170), (0, 1970, 2170), (0, 130, 1085), (0, 1050, 1085), (0, 1970, 1085), (0, 130, 0), (0, 1050, 0), (0, 1970, 0), (3300, 0, 2140), (1550, 0, 2140), (3300, 0, 1070), (1550, 0, 1070), (3300, 0, 1070), (1550, 0, 1070)]
 
 	
-	XYZ = [(14710, 2670, 2160), (15710, 2670, 2160), (14710, 2670, 1080), (15710, 2670, 1080), (14710, 2670, 0), (15710, 2670, 0)]
-	xy = [(3203, 330), (3901, 488), (3125, 1653), (3780, 1607), (3040, 2797), (3673, 2594)]
+	XYZ = [ (3360, 300, 2140), (1540, 300, 2140), (3360, 300, 1070), (1540, 300, 1070), (3360, 300, 70), (1540, 300, 70)]
+	xy = [(1216, 752), (1574, 1155), (1008, 2677), (1556, 1645), (532, 7078), (1537, 2196)]
 	x0,y0,f = 2325,1736,3623
-	omega,phi,kappa,x0,y0,z0 = position_estimation(XYZ,xy)
+	omega,phi,kappa,x0,y0,z0 = position_estimation(XYZ,xy,[4])
+	print("# Robot Position    is: X:",round(x0,3),"m , Y:",round(y0,3),"m , Z:",round(z0,3),"m")
+	print("# Robot orientation is: omega:",round(omega,3),"deg , phi:",round(phi,3),"deg , kappa:",round(kappa,3),"deg")

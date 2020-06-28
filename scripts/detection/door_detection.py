@@ -41,7 +41,7 @@ def find_test_doors(PATH_TO_TEST_IMAGES_DIR):
 	PROJECT_FOLDER = '../../'
 
 	MODEL_FOLDER = 'tensorflow-object_detection/MODEL/'
-	MODEL_NAME = 'lab_doors3_graph_faster_RCNN_resnet'
+	MODEL_NAME = 'lab_doors_final_graph_faster_RCNN_resnet'
 	
 	MODEL_PATH = PROJECT_FOLDER + MODEL_FOLDER + MODEL_NAME
 	
@@ -75,7 +75,8 @@ def find_test_doors(PATH_TO_TEST_IMAGES_DIR):
 
 	#PATH_TO_TEST_IMAGES_DIR = 'home/test_images/test3'
 	# TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR, 'image{}.jpg'.format(i)) for i in range(1, 2) ]
-	TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR,im) for im in os.listdir(PATH_TO_TEST_IMAGES_DIR) ]
+	# TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR,im) for im in os.listdir(PATH_TO_TEST_IMAGES_DIR) ]
+	TEST_IMAGE_PATHS = [PATH_TO_TEST_IMAGES_DIR]
 	IMAGE_SIZE = (12, 8)
 	#TEST_IMAGE_PATHS
 
@@ -110,14 +111,14 @@ def find_test_doors(PATH_TO_TEST_IMAGES_DIR):
 	                np.squeeze(classes).astype(np.int32),
 	                np.squeeze(scores),
 	                category_index,
-	                min_score_thresh = 0.40,
+	                min_score_thresh = 0.60,
 	                use_normalized_coordinates=True,
 	                line_thickness=8)
 	            #plt.figure(figsize=IMAGE_SIZE)
 	            #plt.imsave('/home/smarn/thesis/images/detected_doors/image{}.jpg'.format(i),image_np)
 	            plt.imsave('/home/smarn/thesis/robot_localisation/images/report/image.jpg',image_np)
 	            i = i + 1
-	            #plt.show()
+	            # plt.show()
 
 	return original_image,np.squeeze(boxes),np.squeeze(scores),np.squeeze(classes).astype(np.int32),np.squeeze(num_detections)
 
