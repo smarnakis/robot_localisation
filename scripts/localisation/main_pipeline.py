@@ -14,6 +14,7 @@ from compvis_utils.control_point_extraction import algorithm1,testing_function
 from compvis_utils.space_resection import position_estimation
 matplotlib.use('TkAgg')
 
+##<------------- PRE PROCESSING FUNCTIONS -----------------##
 
 def get_ref_test_image_path():
 	PROJECT_HOME_FOLDER = 	"../../"
@@ -175,75 +176,48 @@ def match_with_reference(image_blocks,PATH_TO_REF_IMAGES_DIR):
 		test_ref_pairs.append((block[0],ref_array))
 	return test_ref_pairs
 
+# def check_crop():
+# 	important_blocks = [(np.array([0.44808996, 0.13009809, 0.60111403, 0.22902723]), 0.99061674, 4)]
+# 	PATH_TO_REF_IMAGES_DIR,PATH_TO_TEST_IMAGES_DIR = get_ref_test_image_path()
+# 	TEST_IMAGE_PATHS = [os.path.join(PATH_TO_TEST_IMAGES_DIR,im) for im in os.listdir(PATH_TO_TEST_IMAGES_DIR)]
+# 	image = cv.imread(TEST_IMAGE_PATHS[0],cv.COLOR_BGR2GRAY)
+# 	image_blocks = seperate_blocks(image,important_blocks)
 
+##<----------------END PRE PROCESSING FUNCTIONS------------------->##
 
+##<----------------MAIN FUNCTIONS--------------------------------->##
 
-def main():
+def evaluation():
+	""" 
+		USAGE: The main evaluating function for the whole pipeline. 
+					It calls robot_localisation algorithm for every test image.
+		IMPORTANT VARIABLES:
+			RESULTS_PATH: Path to the txt file for the final results
+			PATH_TO_TEST_IMAGES_DIR: The path to the TEST images Folder
+		RESULTS: Prints to the results file the position and orientation of each shot.
+	"""
+	RESULTS_PATH = "../../evaluation/results_test.txt"
+	f = open(RESULTS_PATH,"wt")
 	# Bring test image and image blocks
-	PATH_TO_REF_IMAGES_DIR,PATH_TO_TEST_IMAGES_DIR = get_ref_test_image_path()
+	PATH_TO_TEST_IMAGES_DIR = "../../images/test/TESTING"
 	TEST_IMAGE_PATHS = [os.path.join(PATH_TO_TEST_IMAGES_DIR,im) for im in os.listdir(PATH_TO_TEST_IMAGES_DIR)]
-
-	print("#------------------------------------------------#")
-	print("#~~~~~~~~~~Robot localisation algorithm!~~~~~~~~~#")
-	print()
-	print("--------------------TENSORFOW WARN ---------------------------------")
-
-	_,boxes,scores,classes,num_detections = find_test_doors(TEST_IMAGE_PATHS[0])
-
-	print("--------------------------------------------------------------------")
-	print("# 1st stage ignition: Static Object Detection  #")
-	print("# Calculating...")	
-	print("#")
-	
-	important_blocks = exclude_missdetections(boxes,scores,classes,num_detections)
-	image = cv.imread(TEST_IMAGE_PATHS[0],cv.COLOR_BGR2GRAY)
-	image_blocks = seperate_blocks(image,important_blocks)
-
-	print("# First stage completed!")
-	print("# Doors detected:")
-
-	for block in image_blocks:
-		print("# DOOR",block[2])
-
-	print("#")
-	print("# 2nd stage ignition: Control Point Extraction  #")
-	print("# Calculating...")
-	print("#")
-
-	save_image_parts(image_blocks,"cv")
-	image_blocks_filtered = []
-	for block in image_blocks:
-		image_blocks_filtered.append(block[1:]) 
-	XYZ,xy,detected_tags = algorithm1(image_blocks_filtered)
-	# testing_function(image_blocks)
-
-	print("# Second stage completed!")
-	print("#Control Points gathered:")
-	print("#")
-	print("# Space coordinates (mm):")
-	print("# XYZ =",XYZ)
-	print("#")
-	print("# Picture coordinates (pixels):")
-	print("# xy =",xy)
-	print("#")
-	print("# 3rd stage ignition: Position Estimation  #")
-	print("# Calculating...")
-	print("#")
-	
-	omega,phi,kappa,x0,y0,z0 = position_estimation(XYZ,xy,detected_tags)
-
-	print("# SUCCESS!!!!!")
-	print("# Robot Position    is: X:",round(x0,3),"m , Y:",round(y0,3),"m , Z:",round(z0,3),"m")
-	print("# Robot orientation is: omega:",round(omega,3),"deg , phi:",round(phi,3),"deg , kappa:",round(kappa,3),"deg")
-	print("#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#")
-	print("#-------------------------------------------------#")
+	TEST_IMAGE_PATHS.sort()
+	print(TEST_IMAGE_PATHS)
+	f.write("PIC NUM | DOORS DETECTED | CAMERA POSITION (m) | CAMERA ORIENTATION (deg) | TIME ELAPSED (s): 1st|2nd|3rd\n")
+	for TEST_IMAGE_PATH in TEST_IMAGE_PATHS:
+		robot_localisation(TEST_IMAGE_PATH,f)
+	f.close()
 
 def robot_localisation(TEST_IMAGE_PATH,f):
+	"""
+		USAGE: Implements the 3 steps of the entire algorithm.
+	"""
 	start = time.time()
 	image_num = TEST_IMAGE_PATH.split('/')[-1].split('.')[0]
 	print(TEST_IMAGE_PATH)
 	f.write("{} |".format(image_num))
 
+	## STEP1: Use of Faster-RCNN for door detection (../detection/door_detection.py)
 	nn_start = time.time()
 	_,boxes,scores,classes,num_detections = find_test_doors(TEST_IMAGE_PATH)
 
@@ -259,6 +233,10 @@ def robot_localisation(TEST_IMAGE_PATH,f):
 	image_blocks_filtered = []
 	for block in image_blocks:
 		image_blocks_filtered.append(block[1:]) 
+
+	print(image_blocks_filtered)
+	## STEP2: Implementation of Algorithm1 (../compvis_utils/control_point_extraction.py)
+	## 				for control point extraction
 	CPTS_start = time.time()
 	XYZ,xy,detected_tags = algorithm1(image_blocks_filtered,TEST_IMAGE_PATH)
 	CPTS_elapsed = time.time() - CPTS_start
@@ -266,6 +244,9 @@ def robot_localisation(TEST_IMAGE_PATH,f):
 	for file in files:
 		x =1
 		# os.remove(file)
+
+	## STEP3: Implementation of Space Resection Algorithm (../compvis_utils/space_resection.py) 
+	## 				for final position estimation
 	sr_start = time.time()
 	omega,phi,kappa,x0,y0,z0 = position_estimation(XYZ,xy,detected_tags)
 	sr_elapsed = time.time() - sr_start
@@ -273,27 +254,5 @@ def robot_localisation(TEST_IMAGE_PATH,f):
 	f.write(" | {},{},{} | {},{},{} | {},{},{},{} \n".format(round(x0,3),round(y0,3),round(z0,3),round(omega,3),round(phi,3),round(kappa,3),round(nn_elapsed,2),round(CPTS_elapsed,2),round(sr_elapsed,4),round(total_time_elapsed,2)))
 
 
-def evaluation():
-	RESULTS_PATH = "../../evaluation/results_test.txt"
-	f = open(RESULTS_PATH,"wt")
-	# Bring test image and image blocks
-	PATH_TO_TEST_IMAGES_DIR = "../../images/test/TESTING"
-	TEST_IMAGE_PATHS = [os.path.join(PATH_TO_TEST_IMAGES_DIR,im) for im in os.listdir(PATH_TO_TEST_IMAGES_DIR)]
-	TEST_IMAGE_PATHS.sort()
-	print(TEST_IMAGE_PATHS)
-	f.write("PIC NUM | DOORS DETECTED | CAMERA POSITION (m) | CAMERA ORIENTATION (deg) | TIME ELAPSED (s): 1st|2nd|3rd\n")
-	for TEST_IMAGE_PATH in TEST_IMAGE_PATHS:
-		robot_localisation(TEST_IMAGE_PATH,f)
-	f.close()
-
-def check_crop():
-	important_blocks = [(np.array([0.44808996, 0.13009809, 0.60111403, 0.22902723]), 0.99061674, 4)]
-	PATH_TO_REF_IMAGES_DIR,PATH_TO_TEST_IMAGES_DIR = get_ref_test_image_path()
-	TEST_IMAGE_PATHS = [os.path.join(PATH_TO_TEST_IMAGES_DIR,im) for im in os.listdir(PATH_TO_TEST_IMAGES_DIR)]
-	image = cv.imread(TEST_IMAGE_PATHS[0],cv.COLOR_BGR2GRAY)
-	image_blocks = seperate_blocks(image,important_blocks)
-
-
 if __name__ == '__main__':
-	# main()
 	evaluation()

@@ -24,6 +24,8 @@ import yaml
 import time
 pi = 3.1416
 
+##<--------- AUXILIARY FUNCTIONS---------->##
+
 def mod(D,d):
 	if D > 0:
 		res = D % d
@@ -56,6 +58,38 @@ def load_intrincis():
 	f = int((fx + fy)/2)
 	return x0,y0,f
 
+def pre_processing(XYZ,xy):
+	x0,y0,f = 2325,1736,3623
+	pixel_size = 1.12e-6
+
+	xy = np.array(xy)
+	XYZ = np.array(XYZ)
+	
+	XYZ = XYZ * 0.001
+	# print(xy)
+	xy[:,0] = xy[:,0] - x0
+	xy[:,1] = xy[:,1] - y0
+	xy = xy * pixel_size
+	f *= pixel_size
+
+	return XYZ,xy,f
+
+def check_distance(a,b,A,B,O,x0,y0,f):
+	o = (x0,y0)
+	g = ((b[0]-a[0])/2 + a[0],(b[1]-a[1])/2 + a[1])
+	G = ((B[0]-A[0])/2 + A[0],(B[1]-A[1])/2 + A[1],(B[2]-A[2])/2 + A[2])
+	Oo = f
+	og = sqrt(pow(g[0] - o[0],2)+pow(g[1]-o[1],2))
+	Og = sqrt(pow(Oo,2)+pow(og,2))
+	AB = sqrt(pow(A[0]-B[0],2) + pow(A[1]-B[1],2) + pow(A[2]-B[2],2))
+	ab = sqrt(pow(a[0]-b[0],2) + pow(a[1]-b[1],2))
+	OG = Og/ab *AB
+	de = sqrt(pow(O[0]-G[0],2) + pow(O[1]-G[1],2))
+	res = sqrt(pow(OG-de,2))
+	return res
+
+################# MAIN FUNCTIONS ####################
+
 def space_resection(XYZ,xy,eop,f):
 	xp = xy[:,0]
 	yp = xy[:,1]
@@ -74,9 +108,11 @@ def space_resection(XYZ,xy,eop,f):
 	z0 = eop[4]
 
 	delta = np.array([1,1,1,1,1,1])	
-
+	D = []
 	ii = 0
 	while max(abs(delta)) > .00001:
+		if ii == 0:
+			D.append([1,1,1,1,1,1,0])
 		ii += 1
 
 		mw = np.matrix([[1,0,0],[0,cos(omega),sin(omega)],[0,-sin(omega),cos(omega)]])
@@ -93,7 +129,7 @@ def space_resection(XYZ,xy,eop,f):
 		q = np.zeros(ng)
 		r = np.zeros(ng)
 		s = np.zeros(ng)
-		
+
 		for k in range(0,ng):
 			dx[k] = x[k] - x0
 			dy[k] = y0 - y[k]
@@ -131,53 +167,27 @@ def space_resection(XYZ,xy,eop,f):
 		btf = b.T * ff
 		delta = btb * btf
 		v = b*delta - ff
-		# D[:,ii] = delta;
 		omega = omega + delta[0,0]
 		phi = phi + delta[1,0]
 		kappa = kappa + delta[2,0]
 		x0 = x0 + delta[3,0]
 		y0 = y0 + delta[5,0]
 		z0 = z0 + delta[4,0]
+		D.append([delta[0,0],delta[1,0],delta[2,0],delta[3,0],delta[4,0],delta[5,0],ii])
 		if ii > 60:
 			omega,phi,kappa,x0,y0,z0 = -1,-1,-1,-1,-1,-1
 			break
-	return omega,phi,kappa,x0,y0,z0
+	return omega,phi,kappa,x0,y0,z0,D
 
-def pre_processing(XYZ,xy):
-	x0,y0,f = 2325,1736,3623
-	pixel_size = 1.12e-6
 
-	xy = np.array(xy)
-	XYZ = np.array(XYZ)
-	
-	XYZ = XYZ * 0.001
-	print(xy)
-	xy[:,0] = xy[:,0] - x0
-	xy[:,1] = xy[:,1] - y0
-	xy = xy * pixel_size
-	f *= pixel_size
-
-	return XYZ,xy,f
-
-def check_distance(a,b,A,B,O,x0,y0,f):
-	o = (x0,y0)
-	g = ((b[0]-a[0])/2 + a[0],(b[1]-a[1])/2 + a[1])
-	G = ((B[0]-A[0])/2 + A[0],(B[1]-A[1])/2 + A[1],(B[2]-A[2])/2 + A[2])
-	Oo = f
-	og = sqrt(pow(g[0] - o[0],2)+pow(g[1]-o[1],2))
-	Og = sqrt(pow(Oo,2)+pow(og,2))
-	AB = sqrt(pow(A[0]-B[0],2) + pow(A[1]-B[1],2) + pow(A[2]-B[2],2))
-	ab = sqrt(pow(a[0]-b[0],2) + pow(a[1]-b[1],2))
-	OG = Og/ab *AB
-	de = sqrt(pow(O[0]-G[0],2) + pow(O[1]-G[1],2))
-	res = sqrt(pow(OG-de,2))
-	return res
 
 def position_estimation(XYZ,xy,detected_tags):
 	# A = XYZ[0]
 	# B = XYZ[5]
 	# a = xy[0]
 	# b = xy[5]
+	# print("_________")
+	# print(XYZ,xy)
 	XYZ,xy,f = pre_processing(XYZ,xy)
 
 	phi_min = -170
@@ -203,19 +213,58 @@ def position_estimation(XYZ,xy,detected_tags):
 
 	for phi_init in range(phi_min,phi_max,10):
 		eop = [round(d2r(0),5),round(d2r(phi_init),5),round(d2r(0),5),1.0,1.05,0.1]
-		omega,phi,kappa,x0,y0,z0 = space_resection(XYZ,xy,eop,f)
+		omega,phi,kappa,x0,y0,z0,D = space_resection(XYZ,xy,eop,f)
 
 		if x0 < 11.0 and x0 > -1.0 and y0 < 4 and y0 > 0.0:
 			break
 		elif x0 < 21.0 and x0 > 11.0 and y0 < 3 and y0 > 0.0:
 			break
-
+	D = np.array(D)
+	draw_residuals(D)
+	# print(D)
 	omega = 90 + mod(r2d(omega),180)
 	phi = mod(r2d(phi),180)
 	kappa = mod(r2d(kappa),180)
 	# O = (x0*1000,y0*1000,z0*1000)
 	# res = check_distance(a,b,A,B,O,2325,1736,3623)
 	return omega,phi,kappa,x0,y0,z0
+
+###########################################################
+
+##<--------- VISUALISATION FUNCTIONS-------------->##
+
+def draw_residuals(D):
+	res_omega = D[:,0]
+	res_phi = D[:,1]
+	res_kappa = D[:,2]
+	res_x = D[:,3]
+	res_y = D[:,4]
+	res_z = D[:,5]
+	i = D[:,6]
+	fig,ax = plt.subplots(1,2)
+	fig.suptitle("Φωτογραμμετρική Οπισθοτομία - Σφάλματα.")
+	ax[0].plot(i,res_omega)
+	ax[0].plot(i,res_phi)
+	ax[0].plot(i,res_kappa)
+	ax[1].plot(i,res_x)
+	ax[1].plot(i,res_y)
+	ax[1].plot(i,res_z)
+	ax[0].scatter(i,res_omega)
+	ax[0].scatter(i,res_phi)
+	ax[0].scatter(i,res_kappa)
+	ax[1].scatter(i,res_x)
+	ax[1].scatter(i,res_y)
+	ax[1].scatter(i,res_z)
+	ax[0].grid("on")
+	ax[1].grid("on")
+	ax[0].set_ylabel("Σφάλμα (rad)")
+	ax[1].set_ylabel("Σφάλμα (m)")
+	ax[0].set_xlabel("Δείκτης επαναλήψεων")
+	ax[1].set_xlabel("Δείκτης επαναλήψεων")
+	ax[0].legend(["ω","φ","κ"])
+	ax[1].legend(["x","y","z"])
+	plt.show()	
+
 
 if __name__ == '__main__':
 	# DOORS 2-3
@@ -243,8 +292,9 @@ if __name__ == '__main__':
 	XYZ = [(0, 130, 2170), (0, 1050, 2170), (0, 1970, 2170), (0, 130, 1085), (0, 1050, 1085), (0, 1970, 1085), (0, 130, 0), (0, 1050, 0), (0, 1970, 0), (3300, 0, 2140), (1550, 0, 2140), (3300, 0, 1070), (1550, 0, 1070), (3300, 0, 1070), (1550, 0, 1070)]
 
 	
-	XYZ = [ (3360, 300, 2140), (1540, 300, 2140), (3360, 300, 1070), (1540, 300, 1070), (3360, 300, 70), (1540, 300, 70)]
-	xy = [(1216, 752), (1574, 1155), (1008, 2677), (1556, 1645), (532, 7078), (1537, 2196)]
+	XYZ = [(0, 430, 2170), (0, 1350, 2170), (0, 2250, 2170), (0, 430, 1085), (0, 1350, 1085), (0, 2250, 1085), (0, 430, 0), (0, 1350, 0), (0, 2250, 0), (3360, 300, 2140), (1540, 300, 2140), (3360, 300, 1070), (1540, 300, 1070), (3360, 300, 70), (1540, 300, 70)]
+	xy = [(2961, 989), (3553, 900), (4362, 802), (2955, 1701), (3543, 1701), (4350, 1680), (2950, 2423), (3557, 2498), (4337, 2586), (728, 520), (2223, 825), (739, 1744), (2225, 1707), (749, 3056), (2227, 2535)]
+
 	x0,y0,f = 2325,1736,3623
 	omega,phi,kappa,x0,y0,z0 = position_estimation(XYZ,xy,[4])
 	print("# Robot Position    is: X:",round(x0,3),"m , Y:",round(y0,3),"m , Z:",round(z0,3),"m")

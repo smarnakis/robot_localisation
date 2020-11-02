@@ -38,8 +38,8 @@
 python3 export_inference_graph.py \
     --input_type image_tensor \
     --pipeline_config_path training/faster_rcnn_resnet101_coco.config \
-    --trained_checkpoint_prefix training/model.ckpt-2961 \
-    --output_directory MODELS/lab_doors3_graph_faster_RCNN_resnet
+    --trained_checkpoint_prefix training/model.ckpt-3787 \
+    --output_directory MODELS/lab_doors_final_graph_faster_RCNN_resnet
 
 
 

@@ -113,7 +113,7 @@ def find_test_doors(PATH_TO_TEST_IMAGES_DIR):
 	                category_index,
 	                min_score_thresh = 0.60,
 	                use_normalized_coordinates=True,
-	                line_thickness=8)
+	                line_thickness=15)
 	            #plt.figure(figsize=IMAGE_SIZE)
 	            #plt.imsave('/home/smarn/thesis/images/detected_doors/image{}.jpg'.format(i),image_np)
 	            plt.imsave('/home/smarn/thesis/robot_localisation/images/report/image.jpg',image_np)
